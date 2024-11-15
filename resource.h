@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Включаемый файл, созданный в Microsoft Visual C++.
-// Используется addin_updater.rc
+// Используется pipeSrv.rc
 //
 #define IDS_WAIT                        4
 #define IDS_STATUS_TRANSFER_FROM_DEVICE 5

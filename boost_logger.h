@@ -2,6 +2,7 @@
 
 #ifndef BOOST_LOGGER_H
 #define BOOST_LOGGER_H
+
 #include <filesystem>
 #include <shellapi.h>
 #include <boost/current_function.hpp>
@@ -12,8 +13,10 @@
 namespace src = boost::log::sources;
 namespace logging = boost::log;
 
+const std::string alVersion = "4.0.0.1";
+
 #define LOG_SAVE BOOST_LOG_SEV(boost::log::trivial::logger::get(), boost::log::trivial::severity_level::trace)	\
-	<< "<" << rLogger::PathToFilename(__FILE__) << ":" << __LINE__ << "> " BOOST_CURRENT_FUNCTION << " | " 	\
+	<< "bg <" << rLogger::PathToFilename(__FILE__) << ":" << __LINE__ << "> " BOOST_CURRENT_FUNCTION << " | " 	\
 	<< boost::log::add_value("Line", __LINE__)
 
 namespace rLogger

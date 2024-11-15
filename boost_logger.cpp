@@ -41,7 +41,7 @@ void rLogger::InitLogging()
     logging::core::get()->add_sink(consoleSink);
 
     auto fsSink = boost::log::add_file_log(
-        boost::log::keywords::file_name = roamingDirectory + "\\alabuga_dev\\alabuga.dev.log", /* "\\alabuga_dev\\alabuga_dev%d.%m.%Y-%H_%M_%S.log", */
+        boost::log::keywords::file_name = roamingDirectory + "\\alabuga_dev\\alabuga.bg.log", /* "\\alabuga_dev\\alabuga_dev%d.%m.%Y-%H_%M_%S.log", */
         keywords::format = "%TimeStamp% % Message % ",
         boost::log::keywords::rotation_size = 10 * 1024 * 1024,
         boost::log::keywords::min_free_space = 30 * 1024 * 1024,
@@ -49,7 +49,7 @@ void rLogger::InitLogging()
 
     fsSink->locked_backend()->auto_flush(true);
 
-    LOG_SAVE << "rLogger init";
+    LOG_SAVE << "extBIMALDE bgHelper v" << alVersion << "'s logger initialized";
 }
 
 std::string rLogger::GetLogFolderPath() {
