@@ -95,7 +95,7 @@ void iniTimer_check()
 		if (s_hh_mm == isTime)
 		{
 			std::unique_lock<mutex> mu_lock(mu);				
-				ret = WritePrivateProfileStringW(L"ControlFlags", L"runNow", L"false", infConfigPath);
+/*				ret = WritePrivateProfileStringW(L"ControlFlags", L"runNow", L"false", infConfigPath);		*/
 				LPCTSTR revitEXE = "C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe";		
 				startRevitProccess(revitEXE);
 				LOG_SAVE << "Started Revit process: " << revitEXE;

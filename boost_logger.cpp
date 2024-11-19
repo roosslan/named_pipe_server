@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <Shlwapi.h>
 
+#include <boost/locale.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -46,7 +47,7 @@ void rLogger::InitLogging()
         boost::log::keywords::rotation_size = 10 * 1024 * 1024,
         boost::log::keywords::min_free_space = 30 * 1024 * 1024,
         boost::log::keywords::open_mode = std::ios_base::app);
-
+    std::locale loc = boost::locale::generator()("ru_RU.UTF-8");
     fsSink->locked_backend()->auto_flush(true);
 
     LOG_SAVE << "extBIMALDE bgHelper v" << alVersion << "'s logger initialized";

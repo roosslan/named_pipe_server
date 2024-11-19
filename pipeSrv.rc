@@ -75,8 +75,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,0,0,1
- PRODUCTVERSION 4,0,0,1
+ FILEVERSION 4,0,1,1
+ PRODUCTVERSION 4,0,1,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -91,13 +91,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "pipeSrv.Application"
-            VALUE "FileVersion", "4.0.0.1"
-            VALUE "InternalName", "pipeSrv"
+            VALUE "CompanyName", "Alabuga Dev"
+            VALUE "FileDescription", "pipeSrv.bgHelper"
+            VALUE "FileVersion", "4.0.1.1"
+            VALUE "InternalName", "pipeSrv.bgHelper"
             VALUE "LegalCopyright", "Copyright (C) alabuga dev 2024"
-            VALUE "OriginalFilename", "pipeSrv.exe"
-            VALUE "ProductName", "pipeSrv"
-            VALUE "ProductVersion", "4.0.0.1"
+            VALUE "OriginalFilename", "bgHelper.exe"
+            VALUE "ProductName", "pipeSrv.bgHelper"
+            VALUE "ProductVersion", "4.0.1.1"
         END
     END
     BLOCK "VarFileInfo"
