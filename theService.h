@@ -12,16 +12,18 @@
 #error include 'stdafx.h' before including this file for PCH
 #endif
 
-static void iniTimer_check();
-
 class CUpdaterService : public CWinApp
 {
 	std::string infConfigFilePath;
 	WSADATA wsa_data;
 	SOCKADDR_IN addr;
 public:
+	std::mutex mu;
+	bool connectedToQML = false;
 	CUpdaterService();
 	bool SocketConnect();
+	void CloseSocket();
+	SOCKET server_socket;
 	// Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CUpdaterService)	

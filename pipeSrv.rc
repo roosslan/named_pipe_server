@@ -91,13 +91,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Alabuga Dev"
-            VALUE "FileDescription", "pipeSrv.bgHelper"
+            VALUE "CompanyName", "Alabuga Dev / BIM"
+            VALUE "FileDescription", "pipeBIM.bgHelper"
             VALUE "FileVersion", "4.0.1.1"
-            VALUE "InternalName", "pipeSrv.bgHelper"
-            VALUE "LegalCopyright", "Copyright (C) alabuga dev 2024"
+            VALUE "InternalName", "pipeBIM.bgHelper"
+            VALUE "LegalCopyright", "Copyright (C) Alabuga Dev / BIM 2024"
             VALUE "OriginalFilename", "bgHelper.exe"
-            VALUE "ProductName", "pipeSrv.bgHelper"
+            VALUE "ProductName", "pipeBIM.bgHelper"
             VALUE "ProductVersion", "4.0.1.1"
         END
     END

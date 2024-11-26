@@ -12,9 +12,6 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-
-std::mutex mu;
-
 #include "theService.h"
 #include "helper_funcs.h"
 
@@ -32,79 +29,37 @@ BEGIN_MESSAGE_MAP(CUpdaterService, CWinApp)
 END_MESSAGE_MAP()
 
 #define SERVICE_NAME  _T("bgExtBIMALDE")
-
-
-
 /////////////////////////////////////////////////////////////////////////////
 // CUpdaterService construction
-
 CUpdaterService::CUpdaterService() { }
 
-CUpdaterService extBIMALDEsvc;
-
 bool CUpdaterService::SocketConnect()
-{
-	string buffer = "bgHelper";
+{	
 	auto wsaRes = WSAStartup(MAKEWORD(2, 0), &wsa_data);
-	const auto server = socket(AF_INET, SOCK_STREAM, 0);
-
-	InetPton(AF_INET, "127.1", &addr.sin_addr.s_addr);
+	//const auto server = socket(AF_INET, SOCK_STREAM, 0);
+	server_socket = socket(AF_INET, SOCK_STREAM, 0);
+	InetPton(AF_INET, "127.0.0.1", &addr.sin_addr.s_addr);
 	int iResult;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(6667);
-	iResult = connect(server, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
+	iResult = connect(server_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
 
 	if (iResult == SOCKET_ERROR) {
-		closesocket(server);
-		LOG_SAVE << "Socketerr:" << WSAGetLastError();
+		closesocket(server_socket);
+		//LOG_SAVE << "Socketerr: " << WSAGetLastError();
 		return false;
 	}
-
-	send(server, buffer.c_str(), buffer.length(), 0);
-	closesocket(server);
-	WSACleanup();
-
+	connectedToQML = true;
 	return true;
 }
 
-void iniTimer_check()
+void CUpdaterService::CloseSocket()
 {
-	std::string appData = getenv("appdata");
-	std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
-
-	CA2W infConfigPath(iniFile.c_str());
-	wchar_t wsExportEnabled[_MAX_FNAME] = L"";	
-	
-	int ret = GetPrivateProfileStringW(L"ControlFlags", L"runNow", nullptr, wsExportEnabled, std::size(wsExportEnabled), infConfigPath);
-	CW2A o_ExportEnabled(wsExportEnabled);
-	std::string isExportEnabled = o_ExportEnabled;
-
-	if (isExportEnabled == "true")
-	{
-		wchar_t wsTime[_MAX_FNAME] = L"";
-		ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, wsTime, std::size(wsTime), infConfigPath);		
-		CW2A o_Time(wsTime);
-		std::string isTime = o_Time;
-
-		auto now = std::chrono::system_clock::now();
-		auto in_time_t = std::chrono::system_clock::to_time_t(now);
-		std::stringstream ss;
-		ss << std::put_time(std::localtime(&in_time_t), "%H:%M");
-		auto s_hh_mm = ss.str();
-
-		if (s_hh_mm == isTime)
-		{
-			std::unique_lock<mutex> mu_lock(mu);				
-/*				ret = WritePrivateProfileStringW(L"ControlFlags", L"runNow", L"false", infConfigPath);		*/
-				LPCTSTR revitEXE = "C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe";		
-				startRevitProccess(revitEXE);
-				LOG_SAVE << "Started Revit process: " << revitEXE;
-			mu_lock.unlock();
-		}
-	};
-		
-	std::this_thread::sleep_for(std::chrono::seconds(25));
+	closesocket(server_socket);
+	WSACleanup();
 }
+
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CUpdaterService initialization
@@ -172,6 +127,8 @@ BOOL CUpdaterService::InitInstance()
 	
 	// Close the COM library 
 	CoUninitialize();
+
+	CloseSocket();
 
 	LOG_SAVE << "InitInstance: Exit";
 

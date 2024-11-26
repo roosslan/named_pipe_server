@@ -2,7 +2,11 @@
 #include <mutex>
 #include "helper_funcs.h"
 #include <comutil.h>
+#include "theService.h"
+
 #pragma comment(lib,"comsuppw.lib")
+
+CUpdaterService extBIMALDEsvc;
 
 void pipeMessageHandler(
     void* context,
@@ -13,9 +17,22 @@ void pipeMessageHandler(
     std::mutex* pmutex = (std::mutex*)context;
     DWORD threadId = GetCurrentThreadId();
     
-    std::string logTextFrom_extBIMALDE_addin(reinterpret_cast<char*>(input.Ptr()));
+    char* buff = reinterpret_cast<char*>(input.Ptr());
+    std::string logTextFrom_extBIMALDE_addin(buff);
     LOG_SAVE << logTextFrom_extBIMALDE_addin;
+
+    /* Дублируем из пайпа в сокет Qt для отладки */
+    if (extBIMALDEsvc.connectedToQML)
+    {        
+        std::string s_buff(buff);
+        for (size_t i = 0; i < strlen(buff); i += 70)   /* split 70 chars */
+        {
+            const char* c_to_send = s_buff.substr(i, 70).c_str();
+            send(extBIMALDEsvc.server_socket, c_to_send, (int)strlen(c_to_send), 0);
+        }            
+    }    
     /*
+    send(extBIMALDEsvc.server_socket, buff, (int)strlen(buff), 0);
     LPWSTR text = (LPWSTR)input.Ptr();
     {
         lock_guard< std::mutex> lock(*pmutex);
@@ -32,6 +49,53 @@ void pipeMessageHandler(
         bytes);
     output.SetOffset(bytes);        
     */
+}
+
+void iniTimer_check()
+{
+    std::string appData = getenv("appdata");
+    std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
+
+    CA2W infConfigPath(iniFile.c_str());
+    wchar_t wsExportEnabled[_MAX_FNAME] = L"";
+
+    int ret = GetPrivateProfileStringW(L"ControlFlags", L"runNow", nullptr, wsExportEnabled, std::size(wsExportEnabled), infConfigPath);
+    CW2A o_ExportEnabled(wsExportEnabled);
+    std::string isExportEnabled = o_ExportEnabled;
+
+    if (isExportEnabled == "true")
+    {
+        wchar_t wsTime[_MAX_FNAME] = L"";
+        ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, wsTime, std::size(wsTime), infConfigPath);
+        CW2A o_Time(wsTime);
+        std::string isTime = o_Time;
+
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&in_time_t), "%H:%M");
+        auto s_hh_mm = ss.str();
+
+        if (s_hh_mm == isTime)
+        {
+            if (!extBIMALDEsvc.connectedToQML)
+                extBIMALDEsvc.SocketConnect();
+
+            std::unique_lock<mutex> mu_lock(extBIMALDEsvc.mu);
+            /*				ret = WritePrivateProfileStringW(L"ControlFlags", L"runNow", L"false", infConfigPath);		*/
+
+            char* sendbuf = "Started Revit process";
+            if (extBIMALDEsvc.connectedToQML)
+                send(extBIMALDEsvc.server_socket, sendbuf, (int)strlen(sendbuf), 0);
+
+            LPCTSTR revitEXE = "C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe";
+            startRevitProccess(revitEXE);
+            LOG_SAVE << "Started Revit process: " << revitEXE;
+            mu_lock.unlock();
+        }
+    };
+
+    std::this_thread::sleep_for(std::chrono::seconds(25));
 }
 
 VOID startRevitProccess(LPCTSTR lpApplicationName)

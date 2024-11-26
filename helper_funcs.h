@@ -10,6 +10,8 @@
 static constexpr unsigned char PermanentConfig = 0;
 static constexpr unsigned char TemporaryConfig = 1;
 
+void iniTimer_check();
+
 void pipeMessageHandler(
 	void* context,
 	w32::CHandle& handle,
