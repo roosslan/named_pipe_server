@@ -171,7 +171,7 @@ namespace w32
 				//to wait for another client
 				try
 				{
-					std::cout << "CONNECTAD!!";
+					std::cout << "CNamedPipeServer::CreateNamedPipeHandle() CONNECTED!!";
 					server->m_WorkerPool.AddClientConnection(pipeHandle);
 				}
 				catch (exception& ex)

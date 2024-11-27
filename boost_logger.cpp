@@ -56,6 +56,6 @@ void rLogger::InitLogging()
 std::string rLogger::GetLogFolderPath() {
     char current_path[MAX_PATH];
     GetModuleFileName(NULL, current_path, MAX_PATH);
-    PathRemoveFileSpec(current_path);		// Removes filename from the path	    
+    PathRemoveFileSpec(current_path);		            /* Removes filename from the path */
     return std::string(current_path);
 }

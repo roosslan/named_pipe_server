@@ -29,9 +29,27 @@ BEGIN_MESSAGE_MAP(CUpdaterService, CWinApp)
 END_MESSAGE_MAP()
 
 #define SERVICE_NAME  _T("bgExtBIMALDE")
-/////////////////////////////////////////////////////////////////////////////
-// CUpdaterService construction
-CUpdaterService::CUpdaterService() { }
+
+
+// Launched as a /SUBSYSTEM:CONSOLE - 
+CUpdaterService::CUpdaterService()
+{
+	std::string appData = getenv("appdata");
+	std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
+
+	CA2W infConfigPath(iniFile.c_str());
+	wchar_t wsWindowEnabled[_MAX_FNAME] = L"";
+
+	int ret = GetPrivateProfileStringW(L"Version", L"ClassVer", nullptr, wsWindowEnabled, std::size(wsWindowEnabled), infConfigPath);
+	CW2A o_WindowEnabled(wsWindowEnabled);
+	std::string isWindowEnabled = o_WindowEnabled;
+
+	/* Hide console window: */
+	if (isWindowEnabled != "0")
+		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+
+	InitInstance();
+}
 
 bool CUpdaterService::SocketConnect()
 {	
@@ -111,7 +129,7 @@ BOOL CUpdaterService::InitInstance()
 					}
 					else if (choice == 's')
 					{
-						std::cout << "Starting server connections" << endl;
+						std::cout << "Starting pipeServer connections" << endl;
 						pipeServer.StartServing();
 						choice = 'i';				/* infinite */
 					}

@@ -23,12 +23,16 @@ void pipeMessageHandler(
 
     /* Дублируем из пайпа в сокет Qt для отладки */
     if (extBIMALDEsvc.connectedToQML)
-    {        
+    {
+        int charCount = 60;         /* split 60 chars */
         std::string s_buff(buff);
-        for (size_t i = 0; i < strlen(buff); i += 70)   /* split 70 chars */
+        for (size_t i = 0; i < strlen(buff); i += charCount)
         {
-            const char* c_to_send = s_buff.substr(i, 70).c_str();
-            send(extBIMALDEsvc.server_socket, c_to_send, (int)strlen(c_to_send), 0);
+            std::string str = s_buff.substr(i, charCount);
+            char* cstr = new char[str.size() + 1];
+            std::strcpy(cstr, str.c_str());            
+            send(extBIMALDEsvc.server_socket, cstr, (int)strlen(cstr), 0);
+            delete[] cstr;
         }            
     }    
     /*
