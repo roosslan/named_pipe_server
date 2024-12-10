@@ -19,7 +19,7 @@ void pipeMessageHandler(
     
     char* buff = reinterpret_cast<char*>(input.Ptr());
     std::string logTextFrom_extBIMALDE_addin(buff);
-    LOG_SAVE << logTextFrom_extBIMALDE_addin;
+    LOG_SAVE << "pipeMessageHandler: " << logTextFrom_extBIMALDE_addin;
 
     /* Дублируем из пайпа в сокет Qt для отладки */
     if (extBIMALDEsvc.connectedToQML)

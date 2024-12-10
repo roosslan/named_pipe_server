@@ -13,7 +13,7 @@
 namespace src = boost::log::sources;
 namespace logging = boost::log;
 
-const std::string alVersion = "4.0.0.1";
+const std::string bgHelperVersion = "3.12.10.1";
 
 #define LOG_SAVE BOOST_LOG_SEV(boost::log::trivial::logger::get(), boost::log::trivial::severity_level::trace)	\
 	<< "bg <" << rLogger::PathToFilename(__FILE__) << ":" << __LINE__ << "> " BOOST_CURRENT_FUNCTION << " | " 	\

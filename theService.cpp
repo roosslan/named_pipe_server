@@ -64,7 +64,7 @@ bool CUpdaterService::SocketConnect()
 
 	if (iResult == SOCKET_ERROR) {
 		closesocket(server_socket);
-		//LOG_SAVE << "Socketerr: " << WSAGetLastError();
+		LOG_SAVE << "::SocketConnect() Socketerr: " << WSAGetLastError();
 		return false;
 	}
 	connectedToQML = true;
@@ -98,7 +98,7 @@ BOOL CUpdaterService::InitInstance()
 	
 
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	
+	LOG_SAVE << "CoInitializeEx HRESULT: " << hr;
 		// Запущено как приложение
 		LPTSTR argvc = AfxGetApp()->m_lpCmdLine;
 		if (__argc == 1)
@@ -108,6 +108,13 @@ BOOL CUpdaterService::InitInstance()
 				std::mutex g_mutex;
 				wstring name(L"\\\\.\\Pipe\\ifcexporter");
 
+				/* Иногда выдает ошибку 'CreateNamedPipeW error code 5 ("отказано в доступе?")  */
+				WIN32_FIND_DATAW fd;
+				HANDLE hwndPipe = FindFirstFileW(L"\\\\.\\Pipe\\ifcexporter", &fd);
+				if(hwndPipe)
+					DisconnectNamedPipe(hwndPipe);				
+
+				LOG_SAVE << "Starting pipeServer... ";
 				CNamedPipeServer pipeServer(name,
 					pipeMessageHandler,
 					&g_mutex,
@@ -121,15 +128,15 @@ BOOL CUpdaterService::InitInstance()
 					std::thread t(iniTimer_check);
 					
 					if (choice == 'q') {
-						std::cout << "Initiating shutdown" << endl;
+						LOG_SAVE << "Initiating shutdown";
 						pipeServer.Shutdown();
-						std::cout << "Waiting until everything is shutdown" << endl;
+						LOG_SAVE << "Waiting until everything is shutdown";
 						pipeServer.WaitUntilFinished(INFINITE);
-						std::cout << "Shutdown finished" << endl;
+						LOG_SAVE << "Shutdown finished";
 					}
 					else if (choice == 's')
 					{
-						std::cout << "Starting pipeServer connections" << endl;
+						LOG_SAVE << "Starting pipeServer connections";
 						pipeServer.StartServing();
 						choice = 'i';				/* infinite */
 					}
@@ -139,7 +146,7 @@ BOOL CUpdaterService::InitInstance()
 			}
 			catch (exception& ex)
 			{
-				std::cout << ex.what() << endl;
+				LOG_SAVE << ex.what();
 			}			
 		}
 	
