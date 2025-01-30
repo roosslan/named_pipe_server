@@ -20,5 +20,8 @@ void pipeMessageHandler(
 
 VOID startRevitProccess(LPCTSTR lpApplicationName);
 std::string GetConfigFilePath(int ConfigFileType);
+std::string ReadINF_Flag(LPCWSTR keyName);
+void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T));
+void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived);
 
 #endif

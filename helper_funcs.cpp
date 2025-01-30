@@ -34,7 +34,7 @@ void pipeMessageHandler(
             send(extBIMALDEsvc.server_socket, cstr, (int)strlen(cstr), 0);
             delete[] cstr;
         }            
-    }    
+    }
     /*
     send(extBIMALDEsvc.server_socket, buff, (int)strlen(buff), 0);
     LPWSTR text = (LPWSTR)input.Ptr();
@@ -53,6 +53,20 @@ void pipeMessageHandler(
         bytes);
     output.SetOffset(bytes);        
     */
+}
+
+std::string ReadINF_Flag(LPCWSTR keyName)
+{
+    std::string appData = getenv("appdata");
+    std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
+
+    CA2W infConfigPath(iniFile.c_str());
+
+    wchar_t wsValue[_MAX_FNAME] = L"";
+    int rret = GetPrivateProfileStringW(L"ControlFlags", keyName, nullptr, wsValue, std::size(wsValue), infConfigPath);
+    CW2A o_Value(wsValue);
+    std::string retValue = o_Value;
+    return retValue;
 }
 
 void iniTimer_check()
@@ -88,18 +102,41 @@ void iniTimer_check()
             std::unique_lock<mutex> mu_lock(extBIMALDEsvc.mu);
             /*				ret = WritePrivateProfileStringW(L"ControlFlags", L"runNow", L"false", infConfigPath);		*/
 
-            char* sendbuf = "Started Revit process";
+            char* sendbuf = "Starting Revit process";
             if (extBIMALDEsvc.connectedToQML)
                 send(extBIMALDEsvc.server_socket, sendbuf, (int)strlen(sendbuf), 0);
 
-            LPCTSTR revitEXE = "C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe";
-            startRevitProccess(revitEXE);
-            LOG_SAVE << "Started Revit process: " << revitEXE;
+            /* Какую версию Revit запускать - берём из ComboBox'a ExportTo (из INF-файла) */
+            std::string sRevitVersion = ReadINF_Flag(L"RevitVersion");
+            std::string revitVersion = "C:\\Program Files\\Autodesk\\Revit " + sRevitVersion + "\\Revit.exe";
+
+            startRevitProccess(revitVersion.c_str());
+            LOG_SAVE << "Started Revit process: " << revitVersion;
             mu_lock.unlock();
         }
     };
 
     std::this_thread::sleep_for(std::chrono::seconds(25));
+}
+
+void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T)) {
+    char buffer[1024];
+    SSIZE_T bytesReceived = recv(socket, buffer, sizeof(buffer), 0);
+
+    LOG_SAVE << "Invoking the callback with the socket's received data";
+    callback(socket, buffer, bytesReceived);
+}
+
+void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived) {
+    if (bytesReceived > 0) {
+        LOG_SAVE << "bgHelper's onDataReceived - received data: " << std::string(buffer, bytesReceived);
+    }
+    else if (bytesReceived == 0) {
+        LOG_SAVE << "bgHelper's onDataReceived: Connection closed by peer.";
+    }
+    else {
+        LOG_SAVE << "bgHelper's onDataReceived recv() failed: " << strerror(errno);
+    }
 }
 
 VOID startRevitProccess(LPCTSTR lpApplicationName)

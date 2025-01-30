@@ -68,6 +68,9 @@ bool CUpdaterService::SocketConnect()
 		return false;
 	}
 	connectedToQML = true;
+	
+	receiveData(server_socket, onDataReceived); /* recv()'s callback */
+
 	return true;
 }
 
@@ -106,11 +109,11 @@ BOOL CUpdaterService::InitInstance()
 			try
 			{
 				std::mutex g_mutex;
-				wstring name(L"\\\\.\\Pipe\\ifcexporter");
+				wstring name(L"\\\\.\\Pipe\\bghelperpipe");
 
 				/* Иногда выдает ошибку 'CreateNamedPipeW error code 5 ("отказано в доступе?")  */
 				WIN32_FIND_DATAW fd;
-				HANDLE hwndPipe = FindFirstFileW(L"\\\\.\\Pipe\\ifcexporter", &fd);
+				HANDLE hwndPipe = FindFirstFileW(L"\\\\.\\Pipe\\bghelperpipe", &fd);
 				if(hwndPipe)
 					DisconnectNamedPipe(hwndPipe);				
 

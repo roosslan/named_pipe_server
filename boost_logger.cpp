@@ -50,7 +50,7 @@ void rLogger::InitLogging()
     std::locale loc = boost::locale::generator()("ru_RU.UTF-8");
     fsSink->locked_backend()->auto_flush(true);
 
-    LOG_SAVE << "extBIMALDE bgHelper v" << alVersion << "'s logger initialized";
+    LOG_SAVE << "extBIMALDE bgHelper v" << bgHelperVersion << "'s logger initialized";
 }
 
 std::string rLogger::GetLogFolderPath() {
