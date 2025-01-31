@@ -34,6 +34,17 @@ END_MESSAGE_MAP()
 // Launched as a /SUBSYSTEM:CONSOLE - 
 CUpdaterService::CUpdaterService()
 {
+	rLogger::InitLogging();
+
+	const char szUniqueNamedMutex[] = "bghelpermutex";
+	HANDLE hHandle = CreateMutex(NULL, TRUE, szUniqueNamedMutex);
+	rLogger::LAST_ERROR = GetLastError();
+	if (ERROR_ALREADY_EXISTS == rLogger::LAST_ERROR)
+	{
+		LOG_SAVE << "Program already running - exiting.";
+		return;
+	}
+
 	std::string appData = getenv("appdata");
 	std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
 
@@ -49,6 +60,9 @@ CUpdaterService::CUpdaterService()
 		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
 
 	InitInstance();
+
+	ReleaseMutex(hHandle); // Explicitly release mutex
+	CloseHandle(hHandle); // close handle before terminating
 }
 
 bool CUpdaterService::SocketConnect()
@@ -60,16 +74,22 @@ bool CUpdaterService::SocketConnect()
 	int iResult;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(6667);
-	iResult = connect(server_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
 
-	if (iResult == SOCKET_ERROR) {
-		closesocket(server_socket);
-		LOG_SAVE << "::SocketConnect() Socketerr: " << WSAGetLastError();
-		return false;
+	char* error_code;
+	int error_code_size = sizeof(error_code);
+	getsockopt(server_socket, SOL_SOCKET, SO_ERROR, error_code, &error_code_size);
+
+	if(!connectedToQML)
+	{
+		iResult = connect(server_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
+		if (iResult == SOCKET_ERROR)
+		{
+			closesocket(server_socket);
+			/* LOG_SAVE << "::SocketConnect() Socketerr: " << WSAGetLastError(); */
+			return false;
+		}
 	}
 	connectedToQML = true;
-	
-	receiveData(server_socket, onDataReceived); /* recv()'s callback */
 
 	return true;
 }
@@ -95,63 +115,66 @@ BOOL CUpdaterService::InitInstance()
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
 	infConfigFilePath = GetConfigFilePath(PermanentConfig);
-	rLogger::InitLogging();
 
-	SocketConnect();
+	LOG_SAVE << "SocketConnect()...";
+	SocketConnect();	
 	
-
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	LOG_SAVE << "CoInitializeEx HRESULT: " << hr;
-		// Запущено как приложение
-		LPTSTR argvc = AfxGetApp()->m_lpCmdLine;
-		if (__argc == 1)
+
+	/* Бесконечный цикл */
+	active_object obj([this] { SocketConnect(); std::this_thread::sleep_for(200ms); });
+
+	// Запущено как приложение
+	LPTSTR argvc = AfxGetApp()->m_lpCmdLine;
+	if (__argc == 1)
+	{
+		try
 		{
-			try
-			{
-				std::mutex g_mutex;
-				wstring name(L"\\\\.\\Pipe\\bghelperpipe");
+			std::mutex g_mutex;
+			wstring name(L"\\\\.\\Pipe\\bghelperpipe");
 
-				/* Иногда выдает ошибку 'CreateNamedPipeW error code 5 ("отказано в доступе?")  */
-				WIN32_FIND_DATAW fd;
-				HANDLE hwndPipe = FindFirstFileW(L"\\\\.\\Pipe\\bghelperpipe", &fd);
-				if(hwndPipe)
-					DisconnectNamedPipe(hwndPipe);				
+			/* Иногда выдает ошибку 'CreateNamedPipeW error code 5 ("отказано в доступе?")  */
+			WIN32_FIND_DATAW fd;
+			HANDLE hwndPipe = FindFirstFileW(L"\\\\.\\Pipe\\bghelperpipe", &fd);
+			if(hwndPipe)
+				DisconnectNamedPipe(hwndPipe);				
 
-				LOG_SAVE << "Starting pipeServer... ";
-				CNamedPipeServer pipeServer(name,
-					pipeMessageHandler,
-					&g_mutex,
-					256,
-					256,
-					10);
+			LOG_SAVE << "Starting pipeServer... ";
+			CNamedPipeServer pipeServer(name,
+				pipeMessageHandler,
+				&g_mutex,
+				256,
+				256,
+				10);
 
-				char choice = 's';
-				do
-				{						
-					std::thread t(iniTimer_check);
+			char choice = 's';
+			do
+			{						
+				std::thread t(iniTimer_check);
 					
-					if (choice == 'q') {
-						LOG_SAVE << "Initiating shutdown";
-						pipeServer.Shutdown();
-						LOG_SAVE << "Waiting until everything is shutdown";
-						pipeServer.WaitUntilFinished(INFINITE);
-						LOG_SAVE << "Shutdown finished";
-					}
-					else if (choice == 's')
-					{
-						LOG_SAVE << "Starting pipeServer connections";
-						pipeServer.StartServing();
-						choice = 'i';				/* infinite */
-					}
+				if (choice == 'q') {
+					LOG_SAVE << "Initiating shutdown";
+					pipeServer.Shutdown();
+					LOG_SAVE << "Waiting until everything is shutdown";
+					pipeServer.WaitUntilFinished(INFINITE);
+					LOG_SAVE << "Shutdown finished";
+				}
+				else if (choice == 's')
+				{
+					LOG_SAVE << "Starting pipeServer connections";
+					pipeServer.StartServing();
+					choice = 'i';				/* infinite */
+				}
 
-					t.join();
-				} while (choice != 'q');			/* while (SIGABORT != "1"); */
-			}
-			catch (exception& ex)
-			{
-				LOG_SAVE << ex.what();
-			}			
+				t.join();
+			} while (choice != 'q');			/* while (SIGABORT != "1"); */
 		}
+		catch (exception& ex)
+		{
+			LOG_SAVE << ex.what();
+		}			
+	}
 	
 	// Close the COM library 
 	CoUninitialize();

@@ -36,7 +36,7 @@ void pipeWorkerMessageHandler(
 int main()
 {
     try
-    {
+    {   
         std::mutex g_mutex;
         wstring name(L"\\\\.\\Pipe\\Named2Pipe");
 
@@ -46,12 +46,12 @@ int main()
             256,
             256,
             10);
-
+        /*
         cout << "Make a choice:" << endl;
         cout << "==============" << endl;
         cout << "s: start serving" << endl;
         cout << "q: quit" << endl << endl;
-        cout << "Choice: ";
+        cout << "Choice: "; */
 
         char choice = 0;
         do

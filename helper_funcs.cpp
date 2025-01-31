@@ -30,7 +30,7 @@ void pipeMessageHandler(
         {
             std::string str = s_buff.substr(i, charCount);
             char* cstr = new char[str.size() + 1];
-            std::strcpy(cstr, str.c_str());            
+            std::strcpy(cstr, str.c_str());
             send(extBIMALDEsvc.server_socket, cstr, (int)strlen(cstr), 0);
             delete[] cstr;
         }            
@@ -117,26 +117,6 @@ void iniTimer_check()
     };
 
     std::this_thread::sleep_for(std::chrono::seconds(25));
-}
-
-void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T)) {
-    char buffer[1024];
-    SSIZE_T bytesReceived = recv(socket, buffer, sizeof(buffer), 0);
-
-    LOG_SAVE << "Invoking the callback with the socket's received data";
-    callback(socket, buffer, bytesReceived);
-}
-
-void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived) {
-    if (bytesReceived > 0) {
-        LOG_SAVE << "bgHelper's onDataReceived - received data: " << std::string(buffer, bytesReceived);
-    }
-    else if (bytesReceived == 0) {
-        LOG_SAVE << "bgHelper's onDataReceived: Connection closed by peer.";
-    }
-    else {
-        LOG_SAVE << "bgHelper's onDataReceived recv() failed: " << strerror(errno);
-    }
 }
 
 VOID startRevitProccess(LPCTSTR lpApplicationName)

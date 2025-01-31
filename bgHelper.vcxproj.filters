@@ -31,9 +31,6 @@
     <ClCompile Include="LinkerDirectives.cpp">
       <Filter>pipeServer</Filter>
     </ClCompile>
-    <ClCompile Include="NamedPipeServer.cpp">
-      <Filter>pipeServer</Filter>
-    </ClCompile>
     <ClCompile Include="String.cpp">
       <Filter>pipeServer</Filter>
     </ClCompile>
@@ -41,6 +38,9 @@
       <Filter>pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="boost_logger.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="mainNamedPipeServer.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>

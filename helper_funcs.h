@@ -10,6 +10,21 @@
 static constexpr unsigned char PermanentConfig = 0;
 static constexpr unsigned char TemporaryConfig = 1;
 
+struct active_object
+{
+    template < typename FN > active_object(FN fn) : thread([this, fn] { while (alive) fn(); }) {}
+
+    ~active_object() { alive = false; thread.join(); }
+
+    active_object(const active_object&) = delete;
+    active_object(active_object&&) = delete;
+    active_object& operator= (active_object) = delete;
+
+
+    std::atomic<bool> alive{ true };
+    std::thread thread;
+};
+
 void iniTimer_check();
 
 void pipeMessageHandler(

@@ -21,6 +21,11 @@ const std::string bgHelperVersion = "3.12.10.1";
 
 namespace rLogger
 {
+	static 
+		_Check_return_
+		_Post_equals_last_error_
+		DWORD
+		WINAPI LAST_ERROR;
 	void InitLogging();
 	void LogFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
 	std::string PathToFilename(std::string path);

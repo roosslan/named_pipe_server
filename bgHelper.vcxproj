@@ -83,7 +83,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y C:\Root\main_addin\addinExporterProjects\bgHelper\x64\Release\bgHelper.exe C:\Root\main_addin\extBIMALDE.clr\CopyToMSI</Command>
+      <Command>copy /y C:\Root\main_addin\addinExporter\bgHelper\x64\Release\bgHelper.exe C:\Root\main_addin\extBIMALDE.clr\CopyToMSI</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -97,7 +97,7 @@
     <ClCompile Include="Exception.cpp" />
     <ClCompile Include="helper_funcs.cpp" />
     <ClCompile Include="LinkerDirectives.cpp" />
-    <ClCompile Include="NamedPipeServer.cpp" />
+    <ClCompile Include="mainNamedPipeServer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
