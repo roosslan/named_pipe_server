@@ -1,3 +1,5 @@
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 #if !defined(AFX_BG_H__115F4224_5CD5_11D1_ABBA_00A0243D1382__INCLUDED_)
 #define AFX_BG_H__115F4224_5CD5_11D1_ABBA_00A0243D1382__INCLUDED_

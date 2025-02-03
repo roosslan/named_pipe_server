@@ -119,6 +119,35 @@ void iniTimer_check()
     std::this_thread::sleep_for(std::chrono::seconds(25));
 }
 
+const wchar_t* GetWC(const char* c)
+{
+    const size_t cSize = strlen(c) + 1;
+    wchar_t* wc = new wchar_t[cSize];
+    mbstowcs(wc, c, cSize);
+
+    return wc;
+}
+
+bool IsProcessRunning(const wchar_t* processName)
+{
+    bool exists = false;
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof(PROCESSENTRY32);
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+    if (Process32First(snapshot, &entry))
+        while (Process32Next(snapshot, &entry))
+        {
+            auto wcExe = GetWC(entry.szExeFile);
+            if (!wcsicmp(wcExe, processName))
+                exists = true;
+            delete wcExe;
+        }
+    CloseHandle(snapshot);
+    return exists;
+}
+
 VOID startRevitProccess(LPCTSTR lpApplicationName)
 {
     // additional information

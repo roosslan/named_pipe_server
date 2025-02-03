@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstdio>
+#include <windows.h>
 #include "StdAfx.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <tlhelp32.h>
 
 #ifndef HELPER_FUNCS_H
 #define HELPER_FUNCS_H
@@ -36,6 +39,7 @@ void pipeMessageHandler(
 VOID startRevitProccess(LPCTSTR lpApplicationName);
 std::string GetConfigFilePath(int ConfigFileType);
 std::string ReadINF_Flag(LPCWSTR keyName);
+bool IsProcessRunning(const wchar_t* processName);
 void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T));
 void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived);
 
