@@ -34,7 +34,6 @@ void rLogger::InitLogging()
     /* Convert the Windows path type to a C++ path */
     roamingDirectory = appdata;
 
-
     boost::log::add_common_attributes();
 
     auto consoleSink = boost::log::add_console_log(std::clog);

@@ -8,21 +8,20 @@
 
 CUpdaterService extBIMALDEsvc;
 
-void pipeMessageHandler(
-    void* context,
-    w32::CHandle& handle,
-    CIOBuffer& input,
-    CIOBuffer& output)
+void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, CIOBuffer& output)
 {
     std::mutex* pmutex = (std::mutex*)context;
     DWORD threadId = GetCurrentThreadId();
     
     char* buff = reinterpret_cast<char*>(input.Ptr());
+
     std::string logTextFrom_extBIMALDE_addin(buff);
     LOG_SAVE << "pipeMessageHandler: " << logTextFrom_extBIMALDE_addin;
 
+    if (logTextFrom_extBIMALDE_addin == "START_IMMEDIATELY") /* Сообщение от QML Exporter */
+        iniTimer_check();
     /* Дублируем из пайпа в сокет Qt для отладки */
-    if (extBIMALDEsvc.connectedToQML)
+    else if (extBIMALDEsvc.connectedToQML)
     {
         int charCount = 60;         /* split 60 chars */
         std::string s_buff(buff);
@@ -116,7 +115,7 @@ void iniTimer_check()
         }
     };
 
-    std::this_thread::sleep_for(std::chrono::seconds(25));
+    std::this_thread::sleep_for(std::chrono::seconds(20));
 }
 
 const wchar_t* GetWC(const char* c)

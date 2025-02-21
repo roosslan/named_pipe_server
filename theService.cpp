@@ -167,6 +167,7 @@ BOOL CUpdaterService::InitInstance()
 			do
 			{						
 				std::thread t(iniTimer_check);
+/*				active_object obj([] { iniTimer_check(); std::this_thread::sleep_for(200ms); });	*/
 					
 				if (choice == 'q') {
 					LOG_SAVE << "Initiating shutdown";
