@@ -178,7 +178,7 @@ BOOL CUpdaterService::InitInstance()
 			char choice = 's';
 			do
 			{						
-				std::thread t(iniTimer_check);
+				std::thread t(iniTimer_check, false, &m_startedStatus);
 /*				active_object obj([] { iniTimer_check(); std::this_thread::sleep_for(200ms); });	*/
 					
 				if (choice == 'q') {

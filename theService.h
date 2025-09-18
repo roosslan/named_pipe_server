@@ -20,6 +20,7 @@ class CUpdaterService : public CWinApp
 	WSADATA wsa_data;
 	SOCKADDR_IN addr;
 public:
+	bool m_startedStatus = false;
 	std::mutex mu;
 	bool connectedToQML = false;
 	CUpdaterService();

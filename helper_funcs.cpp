@@ -18,8 +18,16 @@ void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, C
     std::string logTextFrom_extBIMALDE_addin(buff);
     LOG_SAVE << "pipeMessageHandler: " << logTextFrom_extBIMALDE_addin;
 
+    if (logTextFrom_extBIMALDE_addin == "Begin of export\n")    /* Сообщение от плагина */
+    {
+        LOG_SAVE << "m_startedStatus is set to false";
+        extBIMALDEsvc.m_startedStatus = false;
+    }
     if (logTextFrom_extBIMALDE_addin == "START_IMMEDIATELY") /* Сообщение от QML Exporter */
-        iniTimer_check();
+    {
+        iniTimer_check(true, &extBIMALDEsvc.m_startedStatus);
+        extBIMALDEsvc.m_startedStatus = false;
+    }
     /* Дублируем из пайпа в сокет Qt для отладки */
     else if (extBIMALDEsvc.connectedToQML)
     {
@@ -68,7 +76,7 @@ std::string ReadINF_Flag(LPCWSTR keyName)
     return retValue;
 }
 
-void iniTimer_check()
+void iniTimer_check(bool startImmediately, bool* startedStatus)
 {
     std::string appData = getenv("appdata");
     std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
@@ -92,14 +100,25 @@ void iniTimer_check()
         std::stringstream ss;
         ss << std::put_time(std::localtime(&in_time_t), "%H:%M");
         auto s_hh_mm = ss.str();
+        ss.clear();
 
-        if (s_hh_mm == isTime)
+        wchar_t wsDate[_MAX_FNAME] = L"";
+        ret = GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, wsDate, std::size(wsDate), infConfigPath);
+        CW2A o_Date(wsDate);
+        std::string isDate = o_Date;
+
+        std::stringstream strStream;
+        strStream << std::put_time(std::localtime(&in_time_t), "%d.%m.%Y");
+        std::string s_dd_mm_yyyy = strStream.str();
+        strStream.clear();
+
+        if ( (s_hh_mm == isTime && s_dd_mm_yyyy == isDate) || startImmediately) 
         {
             if (!extBIMALDEsvc.connectedToQML)
                 extBIMALDEsvc.SocketConnect();
 
             std::unique_lock<mutex> mu_lock(extBIMALDEsvc.mu);
-            /*	Это должен писать плагин после завершения работы.	ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
+            /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
 
             char* sendbuf = "Starting Revit process";
             if (extBIMALDEsvc.connectedToQML)
@@ -109,8 +128,12 @@ void iniTimer_check()
             std::string sRevitVersion = ReadINF_Flag(L"RevitVersion");
             std::string revitVersion = "C:\\Program Files\\Autodesk\\Revit " + sRevitVersion + "\\Revit.exe";
 
-            startRevitProccess(revitVersion.c_str());
-            LOG_SAVE << "Started Revit process: " << revitVersion;
+            if (!extBIMALDEsvc.m_startedStatus)
+            {
+                startRevitProccess(revitVersion.c_str());
+                extBIMALDEsvc.m_startedStatus = true;
+                LOG_SAVE << "Started Revit process: " << revitVersion;
+            }
             mu_lock.unlock();
         }
     };

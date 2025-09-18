@@ -28,7 +28,7 @@ struct active_object
     std::thread thread;
 };
 
-void iniTimer_check();
+void iniTimer_check(bool startImmediately, bool* startedStatus);
 
 void pipeMessageHandler(
 	void* context,
