@@ -7,6 +7,8 @@
 #pragma comment(lib,"comsuppw.lib")
 
 CUpdaterService extBIMALDEsvc;
+HWND launchedRevitHWND;
+DWORD launchedRevitProcessId;
 
 void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, CIOBuffer& output)
 {
@@ -60,6 +62,27 @@ void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, C
         bytes);
     output.SetOffset(bytes);        
     */
+    if (logTextFrom_extBIMALDE_addin.rfind("End of export", 0) == 0)   /* Сообщение от плагина begins with, что экспорт завершен */
+    {
+        LOG_SAVE << "Kиляем Rевит";
+        HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, launchedRevitProcessId);
+        if (hProcess == NULL) {
+            LOG_SAVE << "Failed to open the Revit's process with termination rights. Error: " << GetLastError();
+        }
+        else
+        {
+            BOOL result = TerminateProcess(hProcess, 0);
+
+            if (result) {
+                LOG_SAVE << "Revit terminated successfully";
+            }
+            else {
+                LOG_SAVE << "Failed to terminate process. Error: " << GetLastError();
+            }
+
+            CloseHandle(hProcess);
+        }
+    }
 }
 
 std::string ReadINF_Flag(LPCWSTR keyName)
@@ -170,6 +193,77 @@ bool IsProcessRunning(const wchar_t* processName)
     return exists;
 }
 
+std::string GetConfigFilePath(int ConfigFileType)
+{
+    char* appdata = getenv("APPDATA");
+    std::string roamingDirectory;
+    /* Convert the Windows path type to a C++ path */
+    roamingDirectory = appdata;
+
+    std:string fn_ini = "";
+    if (ConfigFileType == PermanentConfig)
+        fn_ini = "\\bimalde.inf";
+    else if (ConfigFileType == TemporaryConfig)
+        fn_ini = "\\bimalde.ini";
+
+    return roamingDirectory + "\\alabuga_dev" + fn_ini;
+}
+
+struct ProcessWindowFinder
+{
+    DWORD m_targetProcessId;
+    HWND m_foundWindow;
+};
+
+static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    DWORD processId;
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    auto* finder = reinterpret_cast<ProcessWindowFinder*>(lParam);
+
+    // Check if this window belongs to our target process
+    if (processId == finder->m_targetProcessId) {
+        // Additional checks to ensure it's a main window
+        if (IsWindowVisible(hwnd) && GetParent(hwnd) == NULL) {
+            finder->m_foundWindow = hwnd;
+            return FALSE; // Stop enumeration
+        }
+    }
+    return TRUE; // Continue enumeration
+}
+
+HWND FindMainWindow(DWORD processId, int timeoutMs = 10000)
+{
+    ProcessWindowFinder finder;
+    finder.m_targetProcessId = processId;
+    finder.m_foundWindow = nullptr;
+
+    auto startTime = std::chrono::steady_clock::now();
+
+    while (finder.m_foundWindow == nullptr) {
+        EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&finder));
+
+        if (finder.m_foundWindow != nullptr) {
+            break;
+        }
+
+        // Check timeout
+        auto currentTime = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            currentTime - startTime);
+
+        if (elapsed.count() > timeoutMs) {
+            std::cout << "Timeout: Could not find window for process " << processId << std::endl;
+            break;
+        }
+
+        // Wait before trying again
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return finder.m_foundWindow;
+}
+
 VOID startRevitProccess(LPCTSTR lpApplicationName)
 {
     // additional information
@@ -194,22 +288,12 @@ VOID startRevitProccess(LPCTSTR lpApplicationName)
         &pi             // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
     );
     // Close process and thread handles. 
-    CloseHandle(pi.hProcess);
+
     CloseHandle(pi.hThread);
-}
 
-std::string GetConfigFilePath(int ConfigFileType)
-{
-    char* appdata = getenv("APPDATA");
-    std::string roamingDirectory;
-    /* Convert the Windows path type to a C++ path */
-    roamingDirectory = appdata;
+    int timeoutMs = 10000;
+    launchedRevitProcessId = pi.dwProcessId;
+    launchedRevitHWND = FindMainWindow(pi.dwProcessId, timeoutMs);
 
-    std:string fn_ini = "";
-    if (ConfigFileType == PermanentConfig)
-        fn_ini = "\\bimalde.inf";
-    else if (ConfigFileType == TemporaryConfig)
-        fn_ini = "\\bimalde.ini";
-
-    return roamingDirectory + "\\alabuga_dev" + fn_ini;
+    CloseHandle(pi.hProcess);
 }
