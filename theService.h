@@ -22,11 +22,11 @@ class CUpdaterService : public CWinApp
 public:
 	bool m_startedStatus = false;
 	std::mutex mu;
-	bool connectedToQML = false;
+	bool m_connectedToQML = false;
 	CUpdaterService();
 	bool SocketConnect();
 	void CloseSocket();
-	SOCKET server_socket;
+	SOCKET m_server_socket;
 	// Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CUpdaterService)	

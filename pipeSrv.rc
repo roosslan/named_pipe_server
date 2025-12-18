@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Русский (Россия) resources
+// Russian (Russia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
@@ -36,12 +36,12 @@ IDI_ICON_MAIN           ICON                    "res\\pipeSrv.ico"
 
 IDB_BITMAP_WIZARD       BITMAP                  "res\\logosetup.bmp"
 
-#endif    // Русский (Россия) resources
+#endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Английский (США) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -75,8 +75,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,0,1,1
- PRODUCTVERSION 4,0,1,1
+ FILEVERSION 5,17,11,25
+ PRODUCTVERSION 5,17,11,25
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -93,12 +93,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Alabuga Dev / BIM"
             VALUE "FileDescription", "pipeBIM.bgHelper"
-            VALUE "FileVersion", "4.0.1.1"
+            VALUE "FileVersion", "5.17.11.25"
             VALUE "InternalName", "pipeBIM.bgHelper"
-            VALUE "LegalCopyright", "Copyright (C) Alabuga Dev / BIM 2024"
+            VALUE "LegalCopyright", "Copyright (C) Alabuga Dev / BIMALDE 2024 - 2025"
             VALUE "OriginalFilename", "bgHelper.exe"
             VALUE "ProductName", "pipeBIM.bgHelper"
-            VALUE "ProductVersion", "4.0.1.1"
+            VALUE "ProductVersion", "5.17.11.25"
         END
     END
     BLOCK "VarFileInfo"
@@ -135,12 +135,12 @@ BEGIN
     0
 END
 
-#endif    // Английский (США) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Английский (Австралия) resources
+// English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
@@ -192,7 +192,7 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-#endif    // Английский (Австралия) resources
+#endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

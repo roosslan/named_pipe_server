@@ -31,7 +31,7 @@ void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, C
         extBIMALDEsvc.m_startedStatus = false;
     }
     /* Дублируем из пайпа в сокет Qt для отладки */
-    else if (extBIMALDEsvc.connectedToQML)
+    else if (extBIMALDEsvc.m_connectedToQML)
     {
         int charCount = 60;         /* split 60 chars */
         std::string s_buff(buff);
@@ -40,28 +40,11 @@ void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, C
             std::string str = s_buff.substr(i, charCount);
             char* cstr = new char[str.size() + 1];
             std::strcpy(cstr, str.c_str());
-            send(extBIMALDEsvc.server_socket, cstr, (int)strlen(cstr), 0);
+            send(extBIMALDEsvc.m_server_socket, cstr, (int)strlen(cstr), 0);
             delete[] cstr;
         }            
     }
-    /*
-    send(extBIMALDEsvc.server_socket, buff, (int)strlen(buff), 0);
-    LPWSTR text = (LPWSTR)input.Ptr();
-    {
-        lock_guard< std::mutex> lock(*pmutex);
-        // std::wcout << L"Thread " << threadId << L" recieved: " << text << std::endl;
-    }
 
-    wstringstream stream;
-    stream << L"Message answered by thread " << threadId;
-    wstring message = stream.str();
-    DWORD bytes = (message.size() + 1) * sizeof(wstring::value_type);
-    memcpy(
-        output.Ptr(),
-        (void*)message.c_str(),
-        bytes);
-    output.SetOffset(bytes);        
-    */
     if (logTextFrom_extBIMALDE_addin.rfind("End of export", 0) == 0)   /* Сообщение от плагина begins with, что экспорт завершен */
     {
         LOG_SAVE << "Kиляем Rевит";
@@ -137,15 +120,15 @@ void iniTimer_check(bool startImmediately, bool* startedStatus)
 
         if ( (s_hh_mm == isTime && s_dd_mm_yyyy == isDate) || startImmediately) 
         {
-            if (!extBIMALDEsvc.connectedToQML)
+            if (!extBIMALDEsvc.m_connectedToQML)
                 extBIMALDEsvc.SocketConnect();
 
             std::unique_lock<mutex> mu_lock(extBIMALDEsvc.mu);
             /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
 
             char* sendbuf = "Starting Revit process";
-            if (extBIMALDEsvc.connectedToQML)
-                send(extBIMALDEsvc.server_socket, sendbuf, (int)strlen(sendbuf), 0);
+            if (extBIMALDEsvc.m_connectedToQML)
+                send(extBIMALDEsvc.m_server_socket, sendbuf, (int)strlen(sendbuf), 0);
 
             /* Какую версию Revit запускать - берём из ComboBox'a ExportTo (из INF-файла) */
             std::string sRevitVersion = ReadINF_Flag(L"RevitVersion");

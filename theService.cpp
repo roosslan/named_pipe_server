@@ -82,9 +82,9 @@ bool CUpdaterService::SocketConnect()
 	auto wsaRes = WSAStartup(MAKEWORD(2, 0), &wsa_data);
 	
 	int iResult;
-	if(!server_socket)
+	if(!m_server_socket)
 	{
-		server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		m_server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		InetPton(AF_INET, "127.0.0.1", &addr.sin_addr.s_addr);
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(6667);
@@ -94,36 +94,36 @@ bool CUpdaterService::SocketConnect()
 	if(!running)
 	{
 		int wtrue = 1;
-		setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&wtrue, sizeof(int));
-		shutdown(server_socket, 2);
-		closesocket(server_socket);
-		server_socket = 0;
-		connectedToQML = false;
+		setsockopt(m_server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&wtrue, sizeof(int));
+		shutdown(m_server_socket, 2);
+		closesocket(m_server_socket);
+		m_server_socket = 0;
+		m_connectedToQML = false;
 		return false;
 	}
 
-	if(!connectedToQML)
+	if(!m_connectedToQML)
 	{
-		iResult = connect(server_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
+		iResult = connect(m_server_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
 		if (iResult == SOCKET_ERROR)
 		{
 			int wtrue = 1;
-			setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&wtrue, sizeof(int));
-			shutdown(server_socket, 2);
-			closesocket(server_socket);
-			server_socket = 0;
-			connectedToQML = false;
+			setsockopt(m_server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&wtrue, sizeof(int));
+			shutdown(m_server_socket, 2);
+			closesocket(m_server_socket);
+			m_server_socket = 0;
+			m_connectedToQML = false;
 			return false;
 		}
 	}
-	connectedToQML = true;
+	m_connectedToQML = true;
 	
 	return true;
 }
 
 void CUpdaterService::CloseSocket()
 {
-	closesocket(server_socket);
+	closesocket(m_server_socket);
 	WSACleanup();
 }
 
