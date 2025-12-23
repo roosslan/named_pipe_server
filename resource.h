@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Включаемый файл, созданный в Microsoft Visual C++.
-// Используется pipeSrv.rc
+// Microsoft Visual C++ generated include file.
+// Used by pipeSrv.rc
 //
 #define IDS_WAIT                        4
 #define IDS_STATUS_TRANSFER_FROM_DEVICE 5
@@ -15,22 +15,15 @@
 #define IDI_ICON_MAIN                   1003
 #define IDC_STATICEVENT                 1005
 #define IDC_WELCOME_TEXT                1006
-#define IDC_PICTURE                     1007
 #define IDM_ABOUT                       1008
-#define IDC_BUTTON_BROWSE               1009
 #define IDD_RUS1SCAN_DIALOG             1010
-#define IDD_UPDATER_DIALOG              1010
 #define IDB_BITMAPWIZARD                1333
 #define IDB_BITMAP_WIZARD               1333
 #define IDC_CHECKBOX_SUBFOLDER          11006
 #define IDC_STATIC_ASADMIN              11007
 #define IDC_RADIO_START                 11010
 #define IDC_RADIO_NOTHING               11011
-#define IDC_EDIT_FOLDER                 11014
 #define IDC_RADIO_SAVEFOLDER            11015
-#define IDC_BUTTON_APPLY                11016
-#define IDC_GROUPBOX                    11018
-#define IDC_STATIC_DESCRIPTION          11019
 #define IDC_STATIC_DEVICE               11021
 #define IDC_RADIO_PRINT                 11022
 #define IDC_DATFORMAT                   11024

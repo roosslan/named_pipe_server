@@ -7,11 +7,8 @@
 #include <ws2tcpip.h>
 #include <tlhelp32.h>
 
-#ifndef HELPER_FUNCS_H
-#define HELPER_FUNCS_H
-
-static constexpr unsigned char PermanentConfig = 0;
-static constexpr unsigned char TemporaryConfig = 1;
+static constexpr unsigned char permanent_config = 0;
+static constexpr unsigned char temporary_config = 1;
 
 struct active_object
 {
@@ -23,24 +20,22 @@ struct active_object
     active_object(active_object&&) = delete;
     active_object& operator= (active_object) = delete;
 
-
     std::atomic<bool> alive{ true };
     std::thread thread;
 };
 
-void iniTimer_check(bool startImmediately, bool* startedStatus);
+void ini_timer_check(bool start_immediately, bool* started_status);
 
-void pipeMessageHandler(
+void pipe_message_handler(
 	void* context,
 	w32::CHandle& handle,
 	CIOBuffer& input,
 	CIOBuffer& output);
 
-VOID startRevitProccess(LPCTSTR lpApplicationName);
-std::string GetConfigFilePath(int ConfigFileType);
-std::string ReadINF_Flag(LPCWSTR keyName);
-bool IsProcessRunning(const wchar_t* processName);
+void start_revit_process(LPCTSTR lp_application_name);
+std::string get_config_file_path(int config_file_type);
+std::string read_inf_flag(LPCWSTR key_name);
+bool is_process_running(const wchar_t* process_name);
 void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T));
 void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived);
 
-#endif

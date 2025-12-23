@@ -14,26 +14,26 @@
 #error include 'stdafx.h' before including this file for PCH
 #endif
 
-class CUpdaterService : public CWinApp
+class CBgHelperSrv final : public CWinApp
 {
 	std::string infConfigFilePath;
-	WSADATA wsa_data;
-	SOCKADDR_IN addr;
+	WSADATA wsa_data_;
+	SOCKADDR_IN addr_;
 public:
-	bool m_startedStatus = false;
+	bool m_started_status = false;
 	std::mutex mu;
-	bool m_connectedToQML = false;
-	CUpdaterService();
-	bool SocketConnect();
-	void CloseSocket();
+	bool m_connected_to_qml = false;
+	CBgHelperSrv();
+	bool socket_connect();
+	void close_socket() const;
 	SOCKET m_server_socket;
 	// Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CUpdaterService)	
+	//{{AFX_VIRTUAL(CBgHelperSrv)	
 	virtual BOOL InitInstance();
 	//}}AFX_VIRTUAL
 	// Implementation
-	//{{AFX_MSG(CUpdaterService)
+	//{{AFX_MSG(CBgHelperSrv)
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()	
 };

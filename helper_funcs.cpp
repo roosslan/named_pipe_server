@@ -6,55 +6,55 @@
 
 #pragma comment(lib,"comsuppw.lib")
 
-CUpdaterService extBIMALDEsvc;
-HWND launchedRevitHWND;
-DWORD launchedRevitProcessId;
+CBgHelperSrv bg_service;
+HWND launched_revit_hwnd;
+DWORD launched_revit_process_id;
 
-void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, CIOBuffer& output)
+void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input, CIOBuffer& output)
 {
-    std::mutex* pmutex = (std::mutex*)context;
-    DWORD threadId = GetCurrentThreadId();
-    
-    char* buff = reinterpret_cast<char*>(input.Ptr());
+    auto pmutex = (std::mutex*)context;
+    DWORD thread_id = GetCurrentThreadId();
 
-    std::string logTextFrom_extBIMALDE_addin(buff);
-    LOG_SAVE << "pipeMessageHandler: " << logTextFrom_extBIMALDE_addin;
+    const auto buff = reinterpret_cast<char*>(input.Ptr());
 
-    if (logTextFrom_extBIMALDE_addin == "Begin of export\n")    /* Сообщение от плагина */
+    std::string log_text_from_ext_bimalde_addin(buff);
+    LOG_SAVE << "pipeMessageHandler: " << log_text_from_ext_bimalde_addin;
+
+    if (log_text_from_ext_bimalde_addin == "Begin of export\n")    /* Сообщение от плагина */
     {
         LOG_SAVE << "m_startedStatus is set to false";
-        extBIMALDEsvc.m_startedStatus = false;
+        bg_service.m_started_status = false;
     }
-    if (logTextFrom_extBIMALDE_addin == "START_IMMEDIATELY") /* Сообщение от QML Exporter */
+    if (log_text_from_ext_bimalde_addin == "START_IMMEDIATELY") /* Сообщение от QML Exporter */
     {
-        iniTimer_check(true, &extBIMALDEsvc.m_startedStatus);
-        extBIMALDEsvc.m_startedStatus = false;
+        ini_timer_check(true, &bg_service.m_started_status);
+        bg_service.m_started_status = false;
     }
     /* Дублируем из пайпа в сокет Qt для отладки */
-    else if (extBIMALDEsvc.m_connectedToQML)
+    else if (bg_service.m_connected_to_qml)
     {
-        int charCount = 60;         /* split 60 chars */
-        std::string s_buff(buff);
-        for (size_t i = 0; i < strlen(buff); i += charCount)
+	    constexpr int char_count = 60;         /* split 60 chars */
+        const std::string s_buff(buff);
+        for (size_t i = 0; i < strlen(buff); i += char_count)
         {
-            std::string str = s_buff.substr(i, charCount);
-            char* cstr = new char[str.size() + 1];
+            std::string str = s_buff.substr(i, char_count);
+            const auto cstr = new char[str.size() + 1];
             std::strcpy(cstr, str.c_str());
-            send(extBIMALDEsvc.m_server_socket, cstr, (int)strlen(cstr), 0);
+            send(bg_service.m_server_socket, cstr, (int)strlen(cstr), 0);
             delete[] cstr;
         }            
     }
 
-    if (logTextFrom_extBIMALDE_addin.rfind("End of export", 0) == 0)   /* Сообщение от плагина begins with, что экспорт завершен */
+    if (log_text_from_ext_bimalde_addin.rfind("End of export", 0) == 0)   /* Сообщение от плагина begins with, что экспорт завершен */
     {
         LOG_SAVE << "Kиляем Rевит";
-        HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, launchedRevitProcessId);
-        if (hProcess == NULL) {
+        const HANDLE h_process = OpenProcess(PROCESS_TERMINATE, FALSE, launched_revit_process_id);
+        if (h_process == nullptr) {
             LOG_SAVE << "Failed to open the Revit's process with termination rights. Error: " << GetLastError();
         }
         else
         {
-            BOOL result = TerminateProcess(hProcess, 0);
+            BOOL result = TerminateProcess(h_process, 0);
 
             if (result) {
                 LOG_SAVE << "Revit terminated successfully";
@@ -63,43 +63,43 @@ void pipeMessageHandler(void* context, w32::CHandle& handle, CIOBuffer& input, C
                 LOG_SAVE << "Failed to terminate process. Error: " << GetLastError();
             }
 
-            CloseHandle(hProcess);
+            CloseHandle(h_process);
         }
     }
 }
 
-std::string ReadINF_Flag(LPCWSTR keyName)
+std::string read_inf_flag(const LPCWSTR key_name)
 {
-    std::string appData = getenv("appdata");
-    std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
+    const std::string app_data = getenv("appdata");
+    const std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
 
-    CA2W infConfigPath(iniFile.c_str());
+    const CA2W inf_config_path(ini_file.c_str());
 
-    wchar_t wsValue[_MAX_FNAME] = L"";
-    int rret = GetPrivateProfileStringW(L"ControlFlags", keyName, nullptr, wsValue, std::size(wsValue), infConfigPath);
-    CW2A o_Value(wsValue);
-    std::string retValue = o_Value;
-    return retValue;
+    wchar_t ws_value[_MAX_FNAME] = L"";
+    [[maybe_unused]] int rret = GetPrivateProfileStringW(L"ControlFlags", key_name, nullptr, ws_value, std::size(ws_value), inf_config_path);
+    const CW2A o_value(ws_value);
+    std::string ret_value = o_value;
+    return ret_value;
 }
 
-void iniTimer_check(bool startImmediately, bool* startedStatus)
+void ini_timer_check(bool start_immediately, bool* started_status)
 {
-    std::string appData = getenv("appdata");
-    std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
+    std::string app_data = getenv("appdata");
+    std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
 
-    CA2W infConfigPath(iniFile.c_str());
-    wchar_t wsExportEnabled[_MAX_FNAME] = L"";
+    CA2W inf_config_path(ini_file.c_str());
+    wchar_t ws_export_enabled[_MAX_FNAME] = L"";
 
-    int ret = GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, wsExportEnabled, std::size(wsExportEnabled), infConfigPath);
-    CW2A o_ExportEnabled(wsExportEnabled);
-    std::string isExportEnabled = o_ExportEnabled;
+    int ret = GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, ws_export_enabled, std::size(ws_export_enabled), inf_config_path);
+    CW2A o_export_enabled(ws_export_enabled);
+    std::string is_export_enabled = o_export_enabled;
 
-    if (isExportEnabled == "true")
+    if (is_export_enabled == "true")
     {
-        wchar_t wsTime[_MAX_FNAME] = L"";
-        ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, wsTime, std::size(wsTime), infConfigPath);
-        CW2A o_Time(wsTime);
-        std::string isTime = o_Time;
+        wchar_t ws_time[_MAX_FNAME] = L"";
+        ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, ws_time, std::size(ws_time), inf_config_path);
+        CW2A o_time(ws_time);
+        std::string is_time = o_time;
 
         auto now = std::chrono::system_clock::now();
         auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -108,37 +108,37 @@ void iniTimer_check(bool startImmediately, bool* startedStatus)
         auto s_hh_mm = ss.str();
         ss.clear();
 
-        wchar_t wsDate[_MAX_FNAME] = L"";
-        ret = GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, wsDate, std::size(wsDate), infConfigPath);
-        CW2A o_Date(wsDate);
-        std::string isDate = o_Date;
+        wchar_t ws_date[_MAX_FNAME] = L"";
+        ret = GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, ws_date, std::size(ws_date), inf_config_path);
+        CW2A o_date(ws_date);
+        std::string is_date = o_date;
 
-        std::stringstream strStream;
-        strStream << std::put_time(std::localtime(&in_time_t), "%d.%m.%Y");
-        std::string s_dd_mm_yyyy = strStream.str();
-        strStream.clear();
+        std::stringstream str_stream;
+        str_stream << std::put_time(std::localtime(&in_time_t), "%d.%m.%Y");
+        std::string s_dd_mm_yyyy = str_stream.str();
+        str_stream.clear();
 
-        if ( (s_hh_mm == isTime && s_dd_mm_yyyy == isDate) || startImmediately) 
+        if ( (s_hh_mm == is_time && s_dd_mm_yyyy == is_date) || start_immediately) 
         {
-            if (!extBIMALDEsvc.m_connectedToQML)
-                extBIMALDEsvc.SocketConnect();
+            if (!bg_service.m_connected_to_qml)
+                bg_service.socket_connect();
 
-            std::unique_lock<mutex> mu_lock(extBIMALDEsvc.mu);
+            std::unique_lock<mutex> mu_lock(bg_service.mu);
             /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
 
             char* sendbuf = "Starting Revit process";
-            if (extBIMALDEsvc.m_connectedToQML)
-                send(extBIMALDEsvc.m_server_socket, sendbuf, (int)strlen(sendbuf), 0);
+            if (bg_service.m_connected_to_qml)
+                send(bg_service.m_server_socket, sendbuf, (int)strlen(sendbuf), 0);
 
             /* Какую версию Revit запускать - берём из ComboBox'a ExportTo (из INF-файла) */
-            std::string sRevitVersion = ReadINF_Flag(L"RevitVersion");
-            std::string revitVersion = "C:\\Program Files\\Autodesk\\Revit " + sRevitVersion + "\\Revit.exe";
+            std::string s_revit_version = read_inf_flag(L"RevitVersion");
+            std::string revit_version = "C:\\Program Files\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
 
-            if (!extBIMALDEsvc.m_startedStatus)
+            if (!bg_service.m_started_status)
             {
-                startRevitProccess(revitVersion.c_str());
-                extBIMALDEsvc.m_startedStatus = true;
-                LOG_SAVE << "Started Revit process: " << revitVersion;
+                start_revit_process(revit_version.c_str());
+                bg_service.m_started_status = true;
+                LOG_SAVE << "Started Revit process: " << revit_version;
             }
             mu_lock.unlock();
         }
@@ -147,96 +147,95 @@ void iniTimer_check(bool startImmediately, bool* startedStatus)
     std::this_thread::sleep_for(std::chrono::seconds(20));
 }
 
-const wchar_t* GetWC(const char* c)
+const wchar_t* get_wc(const char* c)
 {
-    const size_t cSize = strlen(c) + 1;
-    wchar_t* wc = new wchar_t[cSize];
-    mbstowcs(wc, c, cSize);
+    const size_t c_size = strlen(c) + 1;
+    const auto wc = new wchar_t[c_size];
+    mbstowcs(wc, c, c_size);
 
     return wc;
 }
 
-bool IsProcessRunning(const wchar_t* processName)
+bool is_process_running(const wchar_t* process_name)
 {
     bool exists = false;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
 
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+    const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 
     if (Process32First(snapshot, &entry))
         while (Process32Next(snapshot, &entry))
         {
-            auto wcExe = GetWC(entry.szExeFile);
-            if (!wcsicmp(wcExe, processName))
+            const auto wc_exe = get_wc(entry.szExeFile);
+            if (!wcsicmp(wc_exe, process_name))
                 exists = true;
-            delete wcExe;
+            delete wc_exe;
         }
     CloseHandle(snapshot);
     return exists;
 }
 
-std::string GetConfigFilePath(int ConfigFileType)
+std::string get_config_file_path(const int config_file_type)
 {
-    char* appdata = getenv("APPDATA");
-    std::string roamingDirectory;
+    const char* appdata = getenv("APPDATA");
+    std::string roaming_directory;
     /* Convert the Windows path type to a C++ path */
-    roamingDirectory = appdata;
+    roaming_directory = appdata;
 
     std:string fn_ini = "";
-    if (ConfigFileType == PermanentConfig)
+    if (config_file_type == permanent_config)
         fn_ini = "\\bimalde.inf";
-    else if (ConfigFileType == TemporaryConfig)
+    else if (config_file_type == temporary_config)
         fn_ini = "\\bimalde.ini";
 
-    return roamingDirectory + "\\alabuga_dev" + fn_ini;
+    return roaming_directory + "\\alabuga_dev" + fn_ini;
 }
 
-struct ProcessWindowFinder
+struct process_window_finder
 {
-    DWORD m_targetProcessId;
-    HWND m_foundWindow;
+    DWORD m_target_process_id;
+    HWND m_found_window;
 };
+static BOOL CALLBACK enum_windows_proc(const HWND hwnd, const LPARAM lParam) {
+    DWORD process_id;
+    GetWindowThreadProcessId(hwnd, &process_id);
 
-static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
-    DWORD processId;
-    GetWindowThreadProcessId(hwnd, &processId);
-
-    auto* finder = reinterpret_cast<ProcessWindowFinder*>(lParam);
+    auto* finder = reinterpret_cast<process_window_finder*>(lParam);
 
     // Check if this window belongs to our target process
-    if (processId == finder->m_targetProcessId) {
+    if (process_id == finder->m_target_process_id) {
         // Additional checks to ensure it's a main window
         if (IsWindowVisible(hwnd) && GetParent(hwnd) == NULL) {
-            finder->m_foundWindow = hwnd;
+            finder->m_found_window = hwnd;
             return FALSE; // Stop enumeration
         }
     }
     return TRUE; // Continue enumeration
 }
 
-HWND FindMainWindow(DWORD processId, int timeoutMs = 10000)
+HWND find_main_window(const DWORD process_id, const int timeout_ms = 10000)
 {
-    ProcessWindowFinder finder;
-    finder.m_targetProcessId = processId;
-    finder.m_foundWindow = nullptr;
+    process_window_finder finder;
+    finder.m_target_process_id = process_id;
+    finder.m_found_window = nullptr;
 
-    auto startTime = std::chrono::steady_clock::now();
+    const auto start_time = std::chrono::steady_clock::now();
 
-    while (finder.m_foundWindow == nullptr) {
-        EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&finder));
+    while (finder.m_found_window == nullptr) {
+        EnumWindows(enum_windows_proc, reinterpret_cast<LPARAM>(&finder));
 
-        if (finder.m_foundWindow != nullptr) {
+        if (finder.m_found_window != nullptr) {
             break;
         }
 
         // Check timeout
-        auto currentTime = std::chrono::steady_clock::now();
+        auto current_time = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            currentTime - startTime);
+            current_time - start_time);
 
-        if (elapsed.count() > timeoutMs) {
-            std::cout << "Timeout: Could not find window for process " << processId << std::endl;
+        if (elapsed.count() > timeout_ms) {
+            std::cout << "Timeout: Could not find window for process " << process_id << std::endl;
             break;
         }
 
@@ -244,10 +243,10 @@ HWND FindMainWindow(DWORD processId, int timeoutMs = 10000)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    return finder.m_foundWindow;
+    return finder.m_found_window;
 }
 
-VOID startRevitProccess(LPCTSTR lpApplicationName)
+VOID start_revit_process(const LPCTSTR lp_application_name)
 {
     // additional information
     STARTUPINFO si;
@@ -259,24 +258,24 @@ VOID startRevitProccess(LPCTSTR lpApplicationName)
     ZeroMemory(&pi, sizeof(pi));
 
     // start the program up
-    CreateProcess(lpApplicationName,   // the path
-        NULL,           // Command line
-        NULL,           // Process handle not inheritable
-        NULL,           // Thread handle not inheritable
-        FALSE,          // Set handle inheritance to FALSE
-        0,              // No creation flags
-        NULL,           // Use parent's environment block
-        NULL,           // Use parent's starting directory 
-        &si,            // Pointer to STARTUPINFO structure
-        &pi             // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
+    CreateProcess(lp_application_name, // the path
+                  nullptr,           // Command line
+                  nullptr,           // Process handle not inheritable
+                  nullptr,           // Thread handle not inheritable
+				  FALSE,             // Set handle inheritance to FALSE
+				  0,                 // No creation flags
+                  nullptr,           // Use parent's environment block
+                  nullptr,           // Use parent's starting directory 
+				  &si,               // Pointer to STARTUPINFO structure
+				  &pi                // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
     );
     // Close process and thread handles. 
 
     CloseHandle(pi.hThread);
 
-    int timeoutMs = 10000;
-    launchedRevitProcessId = pi.dwProcessId;
-    launchedRevitHWND = FindMainWindow(pi.dwProcessId, timeoutMs);
+    constexpr int timeout_ms = 10000;
+    launched_revit_process_id = pi.dwProcessId;
+    launched_revit_hwnd = find_main_window(pi.dwProcessId, timeout_ms);
 
     CloseHandle(pi.hProcess);
 }

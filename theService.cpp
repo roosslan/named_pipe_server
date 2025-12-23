@@ -22,8 +22,8 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-BEGIN_MESSAGE_MAP(CUpdaterService, CWinApp)
-	//{{AFX_MSG_MAP(CUpdaterService)
+BEGIN_MESSAGE_MAP(CBgHelperSrv, CWinApp)
+	//{{AFX_MSG_MAP(CBgHelperSrv)
 	//}}AFX_MSG
 	// ON_COMMAND(ID_HELP, CWinApp::OnHelp)	
 END_MESSAGE_MAP()
@@ -32,12 +32,12 @@ END_MESSAGE_MAP()
 
 
 // Launched as a /SUBSYSTEM:CONSOLE - 
-CUpdaterService::CUpdaterService()
+CBgHelperSrv::CBgHelperSrv()
 {
 	rLogger::InitLogging();
 
-	const char szUniqueNamedMutex[] = "bghelpermutex";
-	HANDLE hHandle = CreateMutex(NULL, TRUE, szUniqueNamedMutex);
+	constexpr char sz_unique_named_mutex[] = "bghelpermutex";
+	const HANDLE h_handle = CreateMutex(nullptr, TRUE, sz_unique_named_mutex);
 	rLogger::LAST_ERROR = GetLastError();
 	if (ERROR_ALREADY_EXISTS == rLogger::LAST_ERROR)
 	{
@@ -45,52 +45,35 @@ CUpdaterService::CUpdaterService()
 		return;
 	}
 
-	std::string appData = getenv("appdata");
-	std::string iniFile = appData + "\\alabuga_dev\\bimalde.inf";
+	const std::string app_data = getenv("appdata");
+	const std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
 
-	CA2W infConfigPath(iniFile.c_str());
-	wchar_t wsVersionFromUpdServer[_MAX_FNAME] = L"";
+	const CA2W inf_config_path(ini_file.c_str());
+	wchar_t ws_version_from_upd_server[_MAX_FNAME] = L"";
 
 	/* Hide console window: */
 	::ShowWindow(::GetConsoleWindow(), SW_HIDE);
 
-	/* Считываем путь для обновления */
-	int ret = GetPrivateProfileStringW(L"SourceDisksNames.amd64", L"1", nullptr, wsVersionFromUpdServer, std::size(wsVersionFromUpdServer), infConfigPath);
-	CW2A o_VersionFromUpdServer(wsVersionFromUpdServer);
-	std::string versionPathFromUpdServer = o_VersionFromUpdServer;
+	CBgHelperSrv::InitInstance();
 
-	/* Start plugin update proccess? */
-	std::vector<std::string> updParams;
-
-	std::stringstream ss(versionPathFromUpdServer);
-
-	while (ss.good())
-	{
-		string substr;
-		getline(ss, substr, ',');
-		updParams.push_back(substr);
-	}
-
-	InitInstance();
-
-	ReleaseMutex(hHandle); // Explicitly release mutex
-	CloseHandle(hHandle); // close handle before terminating
+	ReleaseMutex(h_handle); // Explicitly release mutex
+	CloseHandle(h_handle); // close handle before terminating
 }
 
-bool CUpdaterService::SocketConnect()
+bool CBgHelperSrv::socket_connect()
 {	
-	auto wsaRes = WSAStartup(MAKEWORD(2, 0), &wsa_data);
+	auto wsa_res = WSAStartup(MAKEWORD(2, 0), &wsa_data_);
 	
-	int iResult;
+	int i_result;
 	if(!m_server_socket)
 	{
 		m_server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		InetPton(AF_INET, "127.0.0.1", &addr.sin_addr.s_addr);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(6667);
+		InetPton(AF_INET, "127.0.0.1", &addr_.sin_addr.s_addr);
+		addr_.sin_family = AF_INET;
+		addr_.sin_port = htons(6667);
 	}
 
-	bool running = IsProcessRunning(L"exportToWindow.exe");
+	const bool running = is_process_running(L"exportToWindow.exe");
 	if(!running)
 	{
 		int wtrue = 1;
@@ -98,41 +81,39 @@ bool CUpdaterService::SocketConnect()
 		shutdown(m_server_socket, 2);
 		closesocket(m_server_socket);
 		m_server_socket = 0;
-		m_connectedToQML = false;
+		m_connected_to_qml = false;
 		return false;
 	}
 
-	if(!m_connectedToQML)
+	if(!m_connected_to_qml)
 	{
-		iResult = connect(m_server_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr));
-		if (iResult == SOCKET_ERROR)
+		i_result = connect(m_server_socket, reinterpret_cast<SOCKADDR*>(&addr_), sizeof(addr_));
+		if (i_result == SOCKET_ERROR)
 		{
 			int wtrue = 1;
 			setsockopt(m_server_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&wtrue, sizeof(int));
 			shutdown(m_server_socket, 2);
 			closesocket(m_server_socket);
 			m_server_socket = 0;
-			m_connectedToQML = false;
+			m_connected_to_qml = false;
 			return false;
 		}
 	}
-	m_connectedToQML = true;
+	m_connected_to_qml = true;
 	
 	return true;
 }
 
-void CUpdaterService::CloseSocket()
+void CBgHelperSrv::close_socket() const
 {
 	closesocket(m_server_socket);
 	WSACleanup();
 }
 
-
-
 /////////////////////////////////////////////////////////////////////////////
-// CUpdaterService initialization
+// CBgHelperSrv initialization
 
-BOOL CUpdaterService::InitInstance()
+BOOL CBgHelperSrv::InitInstance()
 {
 	// Standard initialization
 #ifdef _AFXDLL
@@ -141,16 +122,16 @@ BOOL CUpdaterService::InitInstance()
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
-	infConfigFilePath = GetConfigFilePath(PermanentConfig);
+	infConfigFilePath = get_config_file_path(permanent_config);
 
 	LOG_SAVE << "SocketConnect()...";
-	SocketConnect();	
+	socket_connect();	
 	
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	LOG_SAVE << "CoInitializeEx HRESULT: " << hr;
 
 	/* Бесконечный цикл */
-	active_object obj([this] { SocketConnect(); std::this_thread::sleep_for(200ms); });
+	active_object obj([this] { socket_connect(); std::this_thread::sleep_for(200ms); });
 
 	// Запущено как приложение
 	LPTSTR argvc = AfxGetApp()->m_lpCmdLine;
@@ -163,13 +144,13 @@ BOOL CUpdaterService::InitInstance()
 
 			/* Иногда выдает ошибку 'CreateNamedPipeW error code 5 ("отказано в доступе?")  */
 			WIN32_FIND_DATAW fd;
-			HANDLE hwndPipe = FindFirstFileW(L"\\\\.\\Pipe\\bghelperpipe", &fd);
-			if(hwndPipe)
-				DisconnectNamedPipe(hwndPipe);				
+			HANDLE hwnd_pipe = FindFirstFileW(L"\\\\.\\Pipe\\bghelperpipe", &fd);
+			if(hwnd_pipe)
+				DisconnectNamedPipe(hwnd_pipe);				
 
 			LOG_SAVE << "Starting pipeServer... ";
-			CNamedPipeServer pipeServer(name,
-				pipeMessageHandler,
+			CNamedPipeServer pipe_server(name,
+				pipe_message_handler,
 				&g_mutex,
 				256,
 				256,
@@ -178,20 +159,20 @@ BOOL CUpdaterService::InitInstance()
 			char choice = 's';
 			do
 			{						
-				std::thread t(iniTimer_check, false, &m_startedStatus);
+				std::thread t(ini_timer_check, false, &m_started_status);
 /*				active_object obj([] { iniTimer_check(); std::this_thread::sleep_for(200ms); });	*/
 					
 				if (choice == 'q') {
 					LOG_SAVE << "Initiating shutdown";
-					pipeServer.Shutdown();
+					pipe_server.Shutdown();
 					LOG_SAVE << "Waiting until everything is shutdown";
-					pipeServer.WaitUntilFinished(INFINITE);
+					pipe_server.WaitUntilFinished(INFINITE);
 					LOG_SAVE << "Shutdown finished";
 				}
 				else if (choice == 's')
 				{
 					LOG_SAVE << "Starting pipeServer connections";
-					pipeServer.StartServing();
+					pipe_server.StartServing();
 					choice = 'i';				/* infinite */
 				}
 
@@ -207,7 +188,7 @@ BOOL CUpdaterService::InitInstance()
 	// Close the COM library 
 	CoUninitialize();
 
-	CloseSocket();
+	close_socket();
 
 	LOG_SAVE << "InitInstance: Exit";
 
