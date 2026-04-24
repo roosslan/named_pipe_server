@@ -3,7 +3,6 @@
 #ifndef BOOST_LOGGER_H
 #define BOOST_LOGGER_H
 
-#include <filesystem>
 #include <shellapi.h>
 #include <boost/current_function.hpp>
 #include <boost/log/trivial.hpp>

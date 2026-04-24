@@ -53,8 +53,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,23,12,25
- PRODUCTVERSION 6,23,12,25
+ FILEVERSION 6,24,4,26
+ PRODUCTVERSION 6,24,4,26
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +71,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Alabuga Dev / BIM"
             VALUE "FileDescription", "pipeBIM.bgHelper"
-            VALUE "FileVersion", "6.23.12.25"
+            VALUE "FileVersion", "6.24.4.26"
             VALUE "InternalName", "pipeBIM.bgHelper"
-            VALUE "LegalCopyright", "Copyright (C) Alabuga Dev / BIMALDE 2024 - 2026"
+            VALUE "LegalCopyright", "Copyright (C) Alabuga Dev / 2022 - 2026"
             VALUE "OriginalFilename", "bgHelper.exe"
             VALUE "ProductName", "pipeBIM.bgHelper"
-            VALUE "ProductVersion", "6.23.12.25"
+            VALUE "ProductVersion", "6.24.4.26"
         END
     END
     BLOCK "VarFileInfo"

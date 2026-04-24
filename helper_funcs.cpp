@@ -1,3 +1,5 @@
+/* last change 24.4.2026, removed 60-chars dividing */
+
 #include "StdAfx.h"
 #include <mutex>
 #include "helper_funcs.h"
@@ -25,16 +27,17 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
         LOG_SAVE << "m_startedStatus is set to false";
         bg_service.m_started_status = false;
     }
-    if (log_text_from_ext_bimalde_addin == "START_IMMEDIATELY") /* Сообщение от QML Exporter */
+    if (log_text_from_ext_bimalde_addin == "START_IMMEDIATELY")     /* Сообщение от QML Exporter */
     {
-        ini_timer_check(true, &bg_service.m_started_status);
+        ini_timer_check(true, &bg_service.m_started_status);        /* Здесь первый параметр start_immediately = true " */
         bg_service.m_started_status = false;
     }
     /* Дублируем из пайпа в сокет Qt для отладки */
     else if (bg_service.m_connected_to_qml)
     {
-	    constexpr int char_count = 60;         /* split 60 chars */
-        const std::string s_buff(buff);
+        send(bg_service.m_server_socket, buff, (int)strlen(buff), 0);
+	    constexpr int char_count = 60; /* split 60 chars */
+/*        const std::string s_buff(buff);
         for (size_t i = 0; i < strlen(buff); i += char_count)
         {
             std::string str = s_buff.substr(i, char_count);
@@ -42,7 +45,8 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
             std::strcpy(cstr, str.c_str());
             send(bg_service.m_server_socket, cstr, (int)strlen(cstr), 0);
             delete[] cstr;
-        }            
+        }
+*/
     }
 
     if (log_text_from_ext_bimalde_addin.rfind("End of export", 0) == 0)   /* Сообщение от плагина begins with, что экспорт завершен */
@@ -130,7 +134,7 @@ void ini_timer_check(bool start_immediately, bool* started_status)
             if (bg_service.m_connected_to_qml)
                 send(bg_service.m_server_socket, sendbuf, (int)strlen(sendbuf), 0);
 
-            /* Какую версию Revit запускать - берём из ComboBox'a ExportTo (из INF-файла) */
+            /* Какую версию Revit запускать - берём из ComboBox'a ifc_exporter'a (из INF-файла) */
             std::string s_revit_version = read_inf_flag(L"RevitVersion");
             std::string revit_version = "C:\\Program Files\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
 

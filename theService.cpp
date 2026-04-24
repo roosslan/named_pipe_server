@@ -73,7 +73,7 @@ bool CBgHelperSrv::socket_connect()
 		addr_.sin_port = htons(6667);
 	}
 
-	const bool running = is_process_running(L"exportToWindow.exe");
+	const bool running = is_process_running(L"ifc_exporter.exe");
 	if(!running)
 	{
 		int wtrue = 1;
