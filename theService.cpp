@@ -34,7 +34,7 @@ END_MESSAGE_MAP()
 // Launched as a /SUBSYSTEM:CONSOLE - 
 CBgHelperSrv::CBgHelperSrv()
 {
-	rLogger::InitLogging();
+	rLogger::init_logging();
 
 	constexpr char sz_unique_named_mutex[] = "bghelpermutex";
 	const HANDLE h_handle = CreateMutex(nullptr, TRUE, sz_unique_named_mutex);
@@ -70,7 +70,7 @@ bool CBgHelperSrv::socket_connect()
 		m_server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		InetPton(AF_INET, "127.0.0.1", &addr_.sin_addr.s_addr);
 		addr_.sin_family = AF_INET;
-		addr_.sin_port = htons(6667);
+		addr_.sin_port = htons(7777);
 	}
 
 	const bool running = is_process_running(L"ifc_exporter.exe");

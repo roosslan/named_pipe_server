@@ -7,6 +7,9 @@
 #include <ws2tcpip.h>
 #include <tlhelp32.h>
 
+#include "CHandle.h"
+#include "CIOBuffer.h"
+
 static constexpr unsigned char permanent_config = 0;
 static constexpr unsigned char temporary_config = 1;
 
@@ -24,13 +27,15 @@ struct active_object
     std::thread thread;
 };
 
+static std::string get_host_name();
+bool is_network_file_exists();
 void ini_timer_check(bool start_immediately, bool* started_status);
 
 void pipe_message_handler(
 	void* context,
 	w32::CHandle& handle,
-	CIOBuffer& input,
-	CIOBuffer& output);
+	w32::CIOBuffer& input,
+	w32::CIOBuffer& output);
 
 void start_revit_process(LPCTSTR lp_application_name);
 std::string get_config_file_path(int config_file_type);

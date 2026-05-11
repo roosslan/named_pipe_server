@@ -86,70 +86,119 @@ std::string read_inf_flag(const LPCWSTR key_name)
     return ret_value;
 }
 
-void ini_timer_check(bool start_immediately, bool* started_status)
-{
-    std::string app_data = getenv("appdata");
-    std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
+std::string get_host_name(){
+    char hostname[256];
 
-    CA2W inf_config_path(ini_file.c_str());
-    wchar_t ws_export_enabled[_MAX_FNAME] = L"";
+    WSADATA wsa_data;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) return "Error: WSAStartup failed";
 
-    int ret = GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, ws_export_enabled, std::size(ws_export_enabled), inf_config_path);
-    CW2A o_export_enabled(ws_export_enabled);
-    std::string is_export_enabled = o_export_enabled;
+    if (gethostname(hostname, sizeof(hostname)) == 0) {
+        std::string name(hostname);
+        WSACleanup();
 
-    if (is_export_enabled == "true")
-    {
-        wchar_t ws_time[_MAX_FNAME] = L"";
-        ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, ws_time, std::size(ws_time), inf_config_path);
-        CW2A o_time(ws_time);
-        std::string is_time = o_time;
-
-        auto now = std::chrono::system_clock::now();
-        auto in_time_t = std::chrono::system_clock::to_time_t(now);
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&in_time_t), "%H:%M");
-        auto s_hh_mm = ss.str();
-        ss.clear();
-
-        wchar_t ws_date[_MAX_FNAME] = L"";
-        ret = GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, ws_date, std::size(ws_date), inf_config_path);
-        CW2A o_date(ws_date);
-        std::string is_date = o_date;
-
-        std::stringstream str_stream;
-        str_stream << std::put_time(std::localtime(&in_time_t), "%d.%m.%Y");
-        std::string s_dd_mm_yyyy = str_stream.str();
-        str_stream.clear();
-
-        if ( (s_hh_mm == is_time && s_dd_mm_yyyy == is_date) || start_immediately) 
-        {
-            if (!bg_service.m_connected_to_qml)
-                bg_service.socket_connect();
-
-            std::unique_lock<mutex> mu_lock(bg_service.mu);
-            /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
-
-            char* sendbuf = "Starting Revit process";
-            if (bg_service.m_connected_to_qml)
-                send(bg_service.m_server_socket, sendbuf, (int)strlen(sendbuf), 0);
-
-            /* Какую версию Revit запускать - берём из ComboBox'a ifc_exporter'a (из INF-файла) */
-            std::string s_revit_version = read_inf_flag(L"RevitVersion");
-            std::string revit_version = "C:\\Program Files\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
-
-            if (!bg_service.m_started_status)
-            {
-                start_revit_process(revit_version.c_str());
-                bg_service.m_started_status = true;
-                LOG_SAVE << "Started Revit process: " << revit_version;
-            }
-            mu_lock.unlock();
-        }
-    };
-
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+        return name;
+    }
 }
+
+bool is_network_file_exists() {
+    /* для проверки доступности сетевого файла -
+     * имя, например L:\99_IT\00_ifc_export\ald-c421-173.sav */
+    try {
+        return std::filesystem::exists("L:\\99_IT\\00_ifc_export\\" + get_host_name() + ".sav");
+    }
+    catch (...) {
+        // Если сеть отвалилась в момент проверки, fs::exists может бросить исключение
+        return false;
+    }
+}
+
+void ini_timer_check(bool start_immediately, bool* started_status) {
+    /* Проверяем сетевой диск с файлом .sav доступен (+для перемещения) или нет,
+     * если да, перемещаем его в views_sites.sav и стартуем экспорт   */
+    std::future<bool> file_check_future = std::async(std::launch::async, is_network_file_exists);
+    bool async_result_ready = false;
+    bool sav_file_exists = false;
+
+    /* Неблокирующий цикл */
+    while (!async_result_ready) {
+        /* Check status with 0 timeout - returns immediately */
+        auto status = file_check_future.wait_for(std::chrono::milliseconds(0));
+
+        if (status == std::future_status::ready) {
+            sav_file_exists = file_check_future.get();
+            async_result_ready = true;
+        }
+        else {
+            // Main thread is free to do other things here
+            std::cout << "Working on UI or other tasks..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+
+            std::string app_data = getenv("appdata");
+            std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
+
+            CA2W inf_config_path(ini_file.c_str());
+            wchar_t ws_export_enabled[_MAX_FNAME] = L"";
+
+            int ret = GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, ws_export_enabled, std::size(ws_export_enabled), inf_config_path);
+            CW2A o_export_enabled(ws_export_enabled);
+            std::string is_export_enabled = o_export_enabled;
+
+            if (is_export_enabled == "true")
+            {
+                wchar_t ws_time[_MAX_FNAME] = L"";
+                ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, ws_time, std::size(ws_time), inf_config_path);
+                CW2A o_time(ws_time);
+                std::string is_time = o_time;
+
+                auto now = std::chrono::system_clock::now();
+                auto in_time_t = std::chrono::system_clock::to_time_t(now);
+                std::stringstream ss;
+                ss << std::put_time(std::localtime(&in_time_t), "%H:%M");
+                auto s_hh_mm = ss.str();
+                ss.clear();
+
+                wchar_t ws_date[_MAX_FNAME] = L"";
+                ret = GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, ws_date, std::size(ws_date), inf_config_path);
+                CW2A o_date(ws_date);
+                std::string is_date = o_date;
+
+                std::stringstream str_stream;
+                str_stream << std::put_time(std::localtime(&in_time_t), "%d.%m.%Y");
+                std::string s_dd_mm_yyyy = str_stream.str();
+                str_stream.clear();
+
+                if ((s_hh_mm == is_time && s_dd_mm_yyyy == is_date) || start_immediately)
+                {
+                    if (!bg_service.m_connected_to_qml)
+                        bg_service.socket_connect();
+
+                    std::unique_lock<mutex> mu_lock(bg_service.mu);
+                    /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
+
+                    char* send_buf = "Starting Revit process";
+                    if (bg_service.m_connected_to_qml)
+                        send(bg_service.m_server_socket, send_buf, (int)strlen(send_buf), 0);
+
+                    /* Какую версию Revit запускать - берём из ComboBox'a ifc_exporter'a (из INF-файла) */
+                    std::string s_revit_version = read_inf_flag(L"RevitVersion");
+                    std::string revit_version = "C:\\Program Files\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
+
+                    if (!bg_service.m_started_status)
+                    {
+                        start_revit_process(revit_version.c_str());
+                        bg_service.m_started_status = true;
+                        LOG_SAVE << "Started Revit process: " << revit_version;
+                    }
+                    mu_lock.unlock();
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(20));
+        }
+    }
+    std::cout << "Final result: " << (sav_file_exists ? "Found" : "Not found\n");
+}
+
 
 const wchar_t* get_wc(const char* c)
 {

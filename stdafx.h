@@ -37,7 +37,7 @@
 #include <shellapi.h>
 #include <objbase.h>
 #include <atlbase.h>
-
+#include <future>
 #include <filesystem>
 #include <regex>
 #include <sti.h>

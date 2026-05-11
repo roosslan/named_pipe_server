@@ -10,6 +10,8 @@
 
 #include "boost_logger.h"
 
+#pragma comment(lib, "version.lib")
+
 namespace logging = boost::log;
 namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
@@ -17,17 +19,17 @@ namespace sinks = boost::log::sinks;
 namespace attrs = boost::log::attributes;
 namespace keywords = boost::log::keywords;
 
-std::string rLogger::PathToFilename(std::string path) {
+std::string rLogger::path_to_filename(std::string path) {
     return path.substr(path.find_last_of("/\\") + 1);
 }
 
-void rLogger::LogFormatter(logging::record_view const& rec, logging::formatting_ostream& strm)
+void rLogger::log_formatter(logging::record_view const& rec, logging::formatting_ostream& strm)
 {
     // strm << logging::extract< int >("Line", rec) << ":";
     strm << rec[expr::smessage];
 }
 
-void rLogger::InitLogging()
+void rLogger::init_logging()
 {
     char* appdata = getenv("APPDATA");
     std::string roamingDirectory;
@@ -37,7 +39,7 @@ void rLogger::InitLogging()
     boost::log::add_common_attributes();
 
     auto consoleSink = boost::log::add_console_log(std::clog);
-    consoleSink->set_formatter(&LogFormatter);
+    consoleSink->set_formatter(&log_formatter);
     logging::core::get()->add_sink(consoleSink);
 
     auto fsSink = boost::log::add_file_log(
@@ -49,12 +51,36 @@ void rLogger::InitLogging()
     std::locale loc = boost::locale::generator()("ru_RU.UTF-8");
     fsSink->locked_backend()->auto_flush(true);
 
-    LOG_SAVE << "extBIMALDE bgHelper v" << bgHelperVersion << "'s logger initialized";
+    LOG_SAVE << "logger initialized. " << "bgHelper version is " << bg_helper_version;
 }
 
-std::string rLogger::GetLogFolderPath() {
+std::string rLogger::get_log_folder_path() {
     char current_path[MAX_PATH];
     GetModuleFileName(NULL, current_path, MAX_PATH);
     PathRemoveFileSpec(current_path);		            /* Removes filename from the path */
     return std::string(current_path);
+}
+
+std::string rLogger::get_self_version() {
+    char szPath[MAX_PATH];
+    GetModuleFileNameA(NULL, szPath, MAX_PATH);
+
+    DWORD dwHandle = 0;
+    DWORD dwSize = GetFileVersionInfoSizeA(szPath, &dwHandle);
+
+    if (dwSize == 0) return "0.0.0.1";
+
+    std::vector<BYTE> pVersionInfo(dwSize);
+    if (!GetFileVersionInfoA(szPath, dwHandle, dwSize, pVersionInfo.data()))
+        return "0.0.0.2";
+
+    VS_FIXEDFILEINFO* pFileInfo = nullptr;
+    UINT uiSize = 0;
+    if (!VerQueryValueA(pVersionInfo.data(), "\\", (LPVOID*)&pFileInfo, &uiSize))
+        return "0.0.0.3";
+
+    return std::to_string(HIWORD(pFileInfo->dwFileVersionMS)) + "." +
+        std::to_string(LOWORD(pFileInfo->dwFileVersionMS)) + "." +
+        std::to_string(HIWORD(pFileInfo->dwFileVersionLS)) + "." +
+        std::to_string(LOWORD(pFileInfo->dwFileVersionLS));
 }
