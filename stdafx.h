@@ -1,6 +1,8 @@
 // stdafx.h: include file for standard system include files,
 // or project specific include files that are used frequently, but
 // are changed infrequently
+
+#define _WIN32_WINNT 0x0A00 /* Windows 10 */
 #define _WTL_NO_CSTRING
 #define _WTL_NO_WTYPES
 #define _WTL_NO_AUTOMATIC_NAMESPACE

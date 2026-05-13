@@ -16,9 +16,10 @@
 
 class CBgHelperSrv final : public CWinApp
 {
-	std::string infConfigFilePath;
+	std::string inf_config_file_path_;
 	WSADATA wsa_data_;
 	SOCKADDR_IN addr_;
+	int tcp_port_ = 7777;
 public:
 	bool m_started_status = false;
 	std::mutex mu;

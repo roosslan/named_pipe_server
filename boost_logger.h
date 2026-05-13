@@ -3,7 +3,6 @@
 #ifndef BOOST_LOGGER_H
 #define BOOST_LOGGER_H
 
-#include <shellapi.h>
 #include <boost/current_function.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/manipulators/add_value.hpp>
@@ -26,8 +25,9 @@ namespace rLogger
 		WINAPI LAST_ERROR;
 	void init_logging();
 	void log_formatter(logging::record_view const& rec, logging::formatting_ostream& strm);
-	std::string path_to_filename(std::string path);
-	std::string get_log_folder_path();	
+	std::string path_to_filename(const std::string& path);
+	std::string get_log_folder_path();
+	std::wstring expand_environment_variables(const std::wstring& input);
 };
 
 #endif

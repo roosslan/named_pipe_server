@@ -43,4 +43,4 @@ std::string read_inf_flag(LPCWSTR key_name);
 bool is_process_running(const wchar_t* process_name);
 void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T));
 void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived);
-
+std::string get_env(const std::string& env_var);

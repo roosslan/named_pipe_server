@@ -1,4 +1,5 @@
-#include "StdAfx.h"
+/* last changed 12.5.26 */
+#include "stdafx.h"
 
 #include <mutex>
 #include <chrono>
@@ -30,8 +31,6 @@ END_MESSAGE_MAP()
 
 #define SERVICE_NAME  _T("bgExtBIMALDE")
 
-
-// Launched as a /SUBSYSTEM:CONSOLE - 
 CBgHelperSrv::CBgHelperSrv()
 {
 	rLogger::init_logging();
@@ -45,11 +44,11 @@ CBgHelperSrv::CBgHelperSrv()
 		return;
 	}
 
-	const std::string app_data = getenv("appdata");
-	const std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
+	const std::string app_data = get_env("appdata");
+	const std::string ini_file = app_data + "\\alabuga_dev\\ifcexprt.inf";
 
 	const CA2W inf_config_path(ini_file.c_str());
-	wchar_t ws_version_from_upd_server[_MAX_FNAME] = L"";
+	tcp_port_ = GetPrivateProfileIntW(L"Manufacturer", L"tcp_port", 7777, inf_config_path);	
 
 	/* Hide console window: */
 	::ShowWindow(::GetConsoleWindow(), SW_HIDE);
@@ -57,7 +56,7 @@ CBgHelperSrv::CBgHelperSrv()
 	CBgHelperSrv::InitInstance();
 
 	ReleaseMutex(h_handle); // Explicitly release mutex
-	CloseHandle(h_handle); // close handle before terminating
+	CloseHandle(h_handle);  // close handle before terminating
 }
 
 bool CBgHelperSrv::socket_connect()
@@ -70,7 +69,7 @@ bool CBgHelperSrv::socket_connect()
 		m_server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		InetPton(AF_INET, "127.0.0.1", &addr_.sin_addr.s_addr);
 		addr_.sin_family = AF_INET;
-		addr_.sin_port = htons(7777);
+		addr_.sin_port = htons(tcp_port_);
 	}
 
 	const bool running = is_process_running(L"ifc_exporter.exe");
@@ -122,7 +121,7 @@ BOOL CBgHelperSrv::InitInstance()
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
-	infConfigFilePath = get_config_file_path(permanent_config);
+	inf_config_file_path_ = get_config_file_path(permanent_config);
 
 	LOG_SAVE << "SocketConnect()...";
 	socket_connect();	
@@ -133,7 +132,7 @@ BOOL CBgHelperSrv::InitInstance()
 	/* Бесконечный цикл */
 	active_object obj([this] { socket_connect(); std::this_thread::sleep_for(200ms); });
 
-	// Запущено как приложение
+	/* Запущено как приложение */
 	LPTSTR argvc = AfxGetApp()->m_lpCmdLine;
 	if (__argc == 1)
 	{

@@ -74,19 +74,29 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
 
 std::string read_inf_flag(const LPCWSTR key_name)
 {
-    const std::string app_data = getenv("appdata");
-    const std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
+    const std::string app_data = get_env("appdata");
+    const std::string ini_file = app_data + "\\alabuga_dev\\ifcexprt.inf";
 
     const CA2W inf_config_path(ini_file.c_str());
 
     wchar_t ws_value[_MAX_FNAME] = L"";
-    [[maybe_unused]] int rret = GetPrivateProfileStringW(L"ControlFlags", key_name, nullptr, ws_value, std::size(ws_value), inf_config_path);
+    GetPrivateProfileStringW(L"ControlFlags", key_name, nullptr, ws_value, std::size(ws_value), inf_config_path);
     const CW2A o_value(ws_value);
-    std::string ret_value = o_value;
-    return ret_value;
+    return std::string(CW2A(ws_value));
 }
 
-std::string get_host_name(){
+std::string get_env(const std::string& env_var) {
+    std::string rret = "";
+    char* buf = nullptr;
+    size_t sz = 0;
+    if (_dupenv_s(&buf, &sz, env_var.c_str()) == 0 && buf != nullptr)
+    {
+        rret = buf;
+        free(buf);
+    }
+    return rret;
+}
+std::string get_host_name() {
     char hostname[256];
 
     WSADATA wsa_data;
@@ -107,7 +117,7 @@ bool is_network_file_exists() {
         return std::filesystem::exists("L:\\99_IT\\00_ifc_export\\" + get_host_name() + ".sav");
     }
     catch (...) {
-        // Если сеть отвалилась в момент проверки, fs::exists может бросить исключение
+        /* Если сеть отвалилась в момент проверки, fs::exists может бросить исключение */
         return false;
     }
 }
@@ -130,26 +140,24 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
         }
         else {
             // Main thread is free to do other things here
-            std::cout << "Working on UI or other tasks..." << std::endl;
+            std::cout << "Working on UI or other tasks...\n";
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 
-            std::string app_data = getenv("appdata");
-            std::string ini_file = app_data + "\\alabuga_dev\\bimalde.inf";
+            const std::string app_data = get_env("appdata");
+            const std::string ini_file = app_data + "\\alabuga_dev\\ifcexprt.inf";
 
             CA2W inf_config_path(ini_file.c_str());
             wchar_t ws_export_enabled[_MAX_FNAME] = L"";
 
-            int ret = GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, ws_export_enabled, std::size(ws_export_enabled), inf_config_path);
-            CW2A o_export_enabled(ws_export_enabled);
-            std::string is_export_enabled = o_export_enabled;
+            GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, ws_export_enabled, std::size(ws_export_enabled), inf_config_path);
+            std::string is_export_enabled{ CW2A(ws_export_enabled) };
 
             if (is_export_enabled == "true")
             {
                 wchar_t ws_time[_MAX_FNAME] = L"";
-                ret = GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, ws_time, std::size(ws_time), inf_config_path);
-                CW2A o_time(ws_time);
-                std::string is_time = o_time;
+                GetPrivateProfileStringW(L"ControlFlags", L"Time", nullptr, ws_time, std::size(ws_time), inf_config_path);
+                std::string is_time{ CW2A(ws_time) };
 
                 auto now = std::chrono::system_clock::now();
                 auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -159,13 +167,12 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
                 ss.clear();
 
                 wchar_t ws_date[_MAX_FNAME] = L"";
-                ret = GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, ws_date, std::size(ws_date), inf_config_path);
-                CW2A o_date(ws_date);
-                std::string is_date = o_date;
+                GetPrivateProfileStringW(L"ControlFlags", L"Date", nullptr, ws_date, std::size(ws_date), inf_config_path);
+                std::string is_date{ CW2A(ws_date) };
 
                 std::stringstream str_stream;
                 str_stream << std::put_time(std::localtime(&in_time_t), "%d.%m.%Y");
-                std::string s_dd_mm_yyyy = str_stream.str();
+                const std::string s_dd_mm_yyyy = str_stream.str();
                 str_stream.clear();
 
                 if ((s_hh_mm == is_time && s_dd_mm_yyyy == is_date) || start_immediately)
@@ -176,13 +183,13 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
                     std::unique_lock<mutex> mu_lock(bg_service.mu);
                     /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
 
-                    char* send_buf = "Starting Revit process";
+                    const char* send_buf = "Starting Revit process";
                     if (bg_service.m_connected_to_qml)
                         send(bg_service.m_server_socket, send_buf, (int)strlen(send_buf), 0);
 
                     /* Какую версию Revit запускать - берём из ComboBox'a ifc_exporter'a (из INF-файла) */
-                    std::string s_revit_version = read_inf_flag(L"RevitVersion");
-                    std::string revit_version = "C:\\Program Files\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
+                    const std::string s_revit_version = read_inf_flag(L"RevitVersion");
+                    const std::string revit_version = "C:\\Program Files\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
 
                     if (!bg_service.m_started_status)
                     {
@@ -231,16 +238,13 @@ bool is_process_running(const wchar_t* process_name)
 
 std::string get_config_file_path(const int config_file_type)
 {
-    const char* appdata = getenv("APPDATA");
-    std::string roaming_directory;
-    /* Convert the Windows path type to a C++ path */
-    roaming_directory = appdata;
+    std::string roaming_directory = get_env("APPDATA");
 
     std:string fn_ini = "";
     if (config_file_type == permanent_config)
-        fn_ini = "\\bimalde.inf";
+        fn_ini = "\\ifcexprt.inf";
     else if (config_file_type == temporary_config)
-        fn_ini = "\\bimalde.ini";
+        fn_ini = "\\ifcexprt.ini";
 
     return roaming_directory + "\\alabuga_dev" + fn_ini;
 }
