@@ -1,10 +1,7 @@
 
 #include "stdafx.h"
 #include "String.h"
-#include <sstream>
 
-#include <codecvt>
-#include <algorithm>
 
 namespace w32
 {

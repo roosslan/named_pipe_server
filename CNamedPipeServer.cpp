@@ -18,7 +18,7 @@
 #include "stdafx.h"
 #include "CNamedPipeServer.h"
 #include "CNamedPipeWorkerPool.h"
-#include <iostream>
+
 
 namespace w32
 {

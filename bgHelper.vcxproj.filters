@@ -8,34 +8,31 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="CEvent.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="CHandle.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="CIOBuffer.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="CIOContext.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="CNamedPipeServer.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="CNamedPipeWorkerPool.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="Exception.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="LinkerDirectives.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="String.cpp">
-      <Filter>pipeServer</Filter>
-    </ClCompile>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>pipeServer</Filter>
+      <Filter>Sources\pipeServer</Filter>
     </ClCompile>
     <ClCompile Include="boost_logger.cpp">
       <Filter>Sources</Filter>
@@ -60,6 +57,43 @@
     <ClInclude Include="resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="sensitive_data.h" />
+    <ClInclude Include="CBuffer.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="CEvent.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="CHandle.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="CIOBuffer.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="CIOContext.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="CNamedPipeServer.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="CNamedPipeWorkerPool.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="Exception.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="StringHandling.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="w32.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformIncludes.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Headers\pipe_server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Sources">
@@ -68,17 +102,17 @@
     <Filter Include="Headers">
       <UniqueIdentifier>{4b92b025-de5a-40f2-ad86-58aa7fcc93ec}</UniqueIdentifier>
     </Filter>
-    <Filter Include="pipeServer">
-      <UniqueIdentifier>{cb280ee7-e1da-4e45-9bd6-1203697bf574}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resources">
       <UniqueIdentifier>{5315daa3-2d77-4223-8b96-b1eedcbc7488}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\pipeServer">
+      <UniqueIdentifier>{cb280ee7-e1da-4e45-9bd6-1203697bf574}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\pipe_server">
+      <UniqueIdentifier>{61ac8723-bc82-4e6b-ba2e-8b1c761e9adf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\logosetup.bmp">
-      <Filter>Resources</Filter>
-    </Image>
     <Image Include="res\pipeSrv.ico">
       <Filter>Resources</Filter>
     </Image>

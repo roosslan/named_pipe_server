@@ -2,6 +2,7 @@
 #include <Shlwapi.h>
 
 #include "boost_logger.h"
+#include "sensitive_data.h"
 
 #include <boost/locale.hpp>
 #include <boost/log/core.hpp>
@@ -35,7 +36,7 @@ void rLogger::init_logging() {
     logging::core::get()->add_sink(console_sink);
 
     const auto fs_sink = boost::log::add_file_log(
-        boost::log::keywords::file_name = roaming_directory + L"\\alabuga_dev\\alabuga.bg.log", /* "\\alabuga_dev\\alabuga_dev%d.%m.%Y-%H_%M_%S.log", */
+        boost::log::keywords::file_name = roaming_directory + log_file_path,
         keywords::format = "%TimeStamp% % Message % ",
         boost::log::keywords::rotation_size = 10 * 1024 * 1024,
         boost::log::keywords::min_free_space = 30 * 1024 * 1024,

@@ -1,8 +1,10 @@
 #pragma once
 
+#include "stdafx.h"
+
 #include <cstdio>
 #include <windows.h>
-#include "StdAfx.h"
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <tlhelp32.h>
@@ -10,11 +12,7 @@
 #include "CHandle.h"
 #include "CIOBuffer.h"
 
-static constexpr unsigned char permanent_config = 0;
-static constexpr unsigned char temporary_config = 1;
-
-struct active_object
-{
+struct active_object {
     template < typename FN > active_object(FN fn) : thread([this, fn] { while (alive) fn(); }) {}
 
     ~active_object() { alive = false; thread.join(); }
@@ -38,9 +36,15 @@ void pipe_message_handler(
 	w32::CIOBuffer& output);
 
 void start_revit_process(LPCTSTR lp_application_name);
-std::string get_config_file_path(int config_file_type);
+std::string get_config_file_path();
 std::string read_inf_flag(LPCWSTR key_name);
 bool is_process_running(const wchar_t* process_name);
+
+/* Windows API(Win32) */
+std::wstring expand_environment_variables(const std::wstring& input);
+
+/* _dupenv_s wrapper, C Runtime Library (CRT) */
+std::string get_env(const std::string& env_var);
+
 void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T));
 void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived);
-std::string get_env(const std::string& env_var);

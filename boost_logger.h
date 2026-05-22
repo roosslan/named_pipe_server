@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef BOOST_LOGGER_H
 #define BOOST_LOGGER_H
 

@@ -28,14 +28,6 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 // remains consistent on all systems.
 IDI_ICON_MAIN           ICON                    "res\\pipeSrv.ico"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_BITMAP_WIZARD       BITMAP                  "res\\logosetup.bmp"
-
 #endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -53,8 +45,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 6,11,5,26
- PRODUCTVERSION 6,11,5,26
+ FILEVERSION 6,2,5,26
+ PRODUCTVERSION 6,22,5,26
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,14 +61,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "Alabuga Dev"
+            VALUE "CompanyName", "alabuga.dev"
             VALUE "FileDescription", "tcp & pipe bgHelper"
-            VALUE "FileVersion", "6.11.5.26"
+            VALUE "FileVersion", "6.22.5.26"
             VALUE "InternalName", "tcp & pipe bgHelper"
-            VALUE "LegalCopyright", "Copyright (C) Alabuga Dev / 2022 - 2026"
+            VALUE "LegalCopyright", "Copyright (C) alabuga.dev / 2022 - 2026"
             VALUE "OriginalFilename", "bgHelper.exe"
             VALUE "ProductName", "tcp & pipe bgHelper"
-            VALUE "ProductVersion", "6.11.5.26"
+            VALUE "ProductVersion", "6.22.5.26"
         END
     END
     BLOCK "VarFileInfo"

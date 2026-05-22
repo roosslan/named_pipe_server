@@ -14,8 +14,7 @@
 #error include 'stdafx.h' before including this file for PCH
 #endif
 
-class CBgHelperSrv final : public CWinApp
-{
+class CBgHelperSrv final : public CWinApp {
 	std::string inf_config_file_path_;
 	WSADATA wsa_data_;
 	SOCKADDR_IN addr_;

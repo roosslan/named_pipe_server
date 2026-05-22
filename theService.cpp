@@ -1,21 +1,16 @@
 /* last changed 12.5.26 */
 #include "stdafx.h"
 
-#include <mutex>
-#include <chrono>
+#include "theService.h"
+#include "helper_funcs.h"
+#include "sensitive_data.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-
-// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
-
-#include "theService.h"
-#include "helper_funcs.h"
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,10 +24,9 @@ BEGIN_MESSAGE_MAP(CBgHelperSrv, CWinApp)
 	// ON_COMMAND(ID_HELP, CWinApp::OnHelp)	
 END_MESSAGE_MAP()
 
-#define SERVICE_NAME  _T("bgExtBIMALDE")
+#define SERVICE_NAME  _T("bg_helper")
 
-CBgHelperSrv::CBgHelperSrv()
-{
+CBgHelperSrv::CBgHelperSrv() {
 	rLogger::init_logging();
 
 	constexpr char sz_unique_named_mutex[] = "bghelpermutex";
@@ -40,12 +34,12 @@ CBgHelperSrv::CBgHelperSrv()
 	rLogger::LAST_ERROR = GetLastError();
 	if (ERROR_ALREADY_EXISTS == rLogger::LAST_ERROR)
 	{
-		LOG_SAVE << "Program already running - exiting.";
+		LOG_SAVE << "The program is already running - exiting.";
 		return;
 	}
 
 	const std::string app_data = get_env("appdata");
-	const std::string ini_file = app_data + "\\alabuga_dev\\ifcexprt.inf";
+	const std::string ini_file = app_data + inf_config_file_path_;
 
 	const CA2W inf_config_path(ini_file.c_str());
 	tcp_port_ = GetPrivateProfileIntW(L"Manufacturer", L"tcp_port", 7777, inf_config_path);	
@@ -55,12 +49,12 @@ CBgHelperSrv::CBgHelperSrv()
 
 	CBgHelperSrv::InitInstance();
 
-	ReleaseMutex(h_handle); // Explicitly release mutex
-	CloseHandle(h_handle);  // close handle before terminating
+	/* Explicitly release mutex */
+	ReleaseMutex(h_handle); 
+	CloseHandle(h_handle);  /* close handle before terminating */
 }
 
-bool CBgHelperSrv::socket_connect()
-{	
+bool CBgHelperSrv::socket_connect() {	
 	auto wsa_res = WSAStartup(MAKEWORD(2, 0), &wsa_data_);
 	
 	int i_result;
@@ -112,8 +106,7 @@ void CBgHelperSrv::close_socket() const
 /////////////////////////////////////////////////////////////////////////////
 // CBgHelperSrv initialization
 
-BOOL CBgHelperSrv::InitInstance()
-{
+BOOL CBgHelperSrv::InitInstance() {
 	// Standard initialization
 #ifdef _AFXDLL
 	// CWinApp::Enable3dControls is no longer needed.You should remove this call
@@ -121,7 +114,7 @@ BOOL CBgHelperSrv::InitInstance()
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
-	inf_config_file_path_ = get_config_file_path(permanent_config);
+	inf_config_file_path_ = get_config_file_path();
 
 	LOG_SAVE << "SocketConnect()...";
 	socket_connect();	
@@ -134,8 +127,7 @@ BOOL CBgHelperSrv::InitInstance()
 
 	/* Запущено как приложение */
 	LPTSTR argvc = AfxGetApp()->m_lpCmdLine;
-	if (__argc == 1)
-	{
+	if (__argc == 1) {
 		try
 		{
 			std::mutex g_mutex;

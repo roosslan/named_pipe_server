@@ -1,10 +1,12 @@
 /* last change 24.4.2026, removed 60-chars dividing */
 
-#include "StdAfx.h"
-#include <mutex>
+#include "stdafx.h"
+
 #include "helper_funcs.h"
-#include <comutil.h>
 #include "theService.h"
+#include "sensitive_data.h"
+
+#include <comutil.h>
 
 #pragma comment(lib,"comsuppw.lib")
 
@@ -12,23 +14,20 @@ CBgHelperSrv bg_service;
 HWND launched_revit_hwnd;
 DWORD launched_revit_process_id;
 
-void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input, CIOBuffer& output)
-{
+void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input, CIOBuffer& output) {
     auto pmutex = (std::mutex*)context;
     DWORD thread_id = GetCurrentThreadId();
 
     const auto buff = reinterpret_cast<char*>(input.Ptr());
 
-    std::string log_text_from_ext_bimalde_addin(buff);
-    LOG_SAVE << "pipeMessageHandler: " << log_text_from_ext_bimalde_addin;
+    std::string log_text_from_revit_addin(buff);
+    LOG_SAVE << "pipeMessageHandler: " << log_text_from_revit_addin;
 
-    if (log_text_from_ext_bimalde_addin == "Begin of export\n")    /* Сообщение от плагина */
-    {
+    if (log_text_from_revit_addin == "Begin of export\n") {  /* Сообщение от плагина */
         LOG_SAVE << "m_startedStatus is set to false";
         bg_service.m_started_status = false;
     }
-    if (log_text_from_ext_bimalde_addin == "START_IMMEDIATELY")     /* Сообщение от QML Exporter */
-    {
+    if (log_text_from_revit_addin == "START_IMMEDIATELY") {    /* Сообщение от QML Exporter */
         ini_timer_check(true, &bg_service.m_started_status);        /* Здесь первый параметр start_immediately = true " */
         bg_service.m_started_status = false;
     }
@@ -49,7 +48,7 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
 */
     }
 
-    if (log_text_from_ext_bimalde_addin.rfind("End of export", 0) == 0)   /* Сообщение от плагина begins with, что экспорт завершен */
+    if (log_text_from_revit_addin.rfind("End of export", 0) == 0)  /* Сообщение от плагина begins with, что экспорт завершен */
     {
         LOG_SAVE << "Kиляем Rевит";
         const HANDLE h_process = OpenProcess(PROCESS_TERMINATE, FALSE, launched_revit_process_id);
@@ -75,7 +74,7 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
 std::string read_inf_flag(const LPCWSTR key_name)
 {
     const std::string app_data = get_env("appdata");
-    const std::string ini_file = app_data + "\\alabuga_dev\\ifcexprt.inf";
+    const std::string ini_file = app_data + inf_file_path;
 
     const CA2W inf_config_path(ini_file.c_str());
 
@@ -83,6 +82,15 @@ std::string read_inf_flag(const LPCWSTR key_name)
     GetPrivateProfileStringW(L"ControlFlags", key_name, nullptr, ws_value, std::size(ws_value), inf_config_path);
     const CW2A o_value(ws_value);
     return std::string(CW2A(ws_value));
+}
+
+std::wstring expand_environment_variables(const std::wstring& input) {
+    DWORD size = ExpandEnvironmentStringsW(input.c_str(), nullptr, 0);
+    if (size == 0) return input;
+
+    std::vector<wchar_t> buffer(size);
+    ExpandEnvironmentStringsW(input.c_str(), buffer.data(), size);
+    return std::wstring(buffer.data());
 }
 
 std::string get_env(const std::string& env_var) {
@@ -112,7 +120,7 @@ std::string get_host_name() {
 
 bool is_network_file_exists() {
     /* для проверки доступности сетевого файла -
-     * имя, например L:\99_IT\00_ifc_export\ald-c421-173.sav */
+     * имя, например L:\99_IT\00_ifc_export\pc-c421-173.sav */
     try {
         return std::filesystem::exists("L:\\99_IT\\00_ifc_export\\" + get_host_name() + ".sav");
     }
@@ -145,7 +153,7 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
 
 
             const std::string app_data = get_env("appdata");
-            const std::string ini_file = app_data + "\\alabuga_dev\\ifcexprt.inf";
+            const std::string ini_file = app_data + inf_file_path;
 
             CA2W inf_config_path(ini_file.c_str());
             wchar_t ws_export_enabled[_MAX_FNAME] = L"";
@@ -207,8 +215,7 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
 }
 
 
-const wchar_t* get_wc(const char* c)
-{
+const wchar_t* get_wc(const char* c) {
     const size_t c_size = strlen(c) + 1;
     const auto wc = new wchar_t[c_size];
     mbstowcs(wc, c, c_size);
@@ -216,8 +223,7 @@ const wchar_t* get_wc(const char* c)
     return wc;
 }
 
-bool is_process_running(const wchar_t* process_name)
-{
+bool is_process_running(const wchar_t* process_name) {
     bool exists = false;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
@@ -236,17 +242,11 @@ bool is_process_running(const wchar_t* process_name)
     return exists;
 }
 
-std::string get_config_file_path(const int config_file_type)
+std::string get_config_file_path()
 {
     std::string roaming_directory = get_env("APPDATA");
 
-    std:string fn_ini = "";
-    if (config_file_type == permanent_config)
-        fn_ini = "\\ifcexprt.inf";
-    else if (config_file_type == temporary_config)
-        fn_ini = "\\ifcexprt.ini";
-
-    return roaming_directory + "\\alabuga_dev" + fn_ini;
+    return roaming_directory + inf_file_path;
 }
 
 struct process_window_finder
@@ -271,8 +271,7 @@ static BOOL CALLBACK enum_windows_proc(const HWND hwnd, const LPARAM lParam) {
     return TRUE; // Continue enumeration
 }
 
-HWND find_main_window(const DWORD process_id, const int timeout_ms = 10000)
-{
+HWND find_main_window(const DWORD process_id, const int timeout_ms = 10000) {
     process_window_finder finder;
     finder.m_target_process_id = process_id;
     finder.m_found_window = nullptr;
@@ -303,8 +302,7 @@ HWND find_main_window(const DWORD process_id, const int timeout_ms = 10000)
     return finder.m_found_window;
 }
 
-VOID start_revit_process(const LPCTSTR lp_application_name)
-{
+VOID start_revit_process(const LPCTSTR lp_application_name) {
     // additional information
     STARTUPINFO si;
     PROCESS_INFORMATION pi;

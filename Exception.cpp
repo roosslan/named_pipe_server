@@ -17,7 +17,7 @@
 
 #include "stdafx.h"
 #include "Exception.h"
-#include <sstream>
+
 #include "StringHandling.h"
 
 namespace w32
