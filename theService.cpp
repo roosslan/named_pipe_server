@@ -148,8 +148,7 @@ BOOL CBgHelperSrv::InitInstance() {
 				10);
 
 			char choice = 's';
-			do
-			{						
+			do {						
 				std::thread t(ini_timer_check, false, &m_started_status);
 /*				active_object obj([] { iniTimer_check(); std::this_thread::sleep_for(200ms); });	*/
 					
@@ -160,8 +159,7 @@ BOOL CBgHelperSrv::InitInstance() {
 					pipe_server.WaitUntilFinished(INFINITE);
 					LOG_SAVE << "Shutdown finished";
 				}
-				else if (choice == 's')
-				{
+				else if (choice == 's')	{
 					LOG_SAVE << "Starting pipeServer connections";
 					pipe_server.StartServing();
 					choice = 'i';				/* infinite */

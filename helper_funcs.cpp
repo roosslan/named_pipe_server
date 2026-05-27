@@ -1,4 +1,4 @@
-/* last change 24.4.2026, removed 60-chars dividing */
+/* last change 27.5.2026, removed 60-chars dividing */
 
 #include "stdafx.h"
 
@@ -28,7 +28,7 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
         bg_service.m_started_status = false;
     }
     if (log_text_from_revit_addin == "START_IMMEDIATELY") {    /* Сообщение от QML Exporter */
-        ini_timer_check(true, &bg_service.m_started_status);        /* Здесь первый параметр start_immediately = true " */
+        ini_timer_check(true, &bg_service.m_started_status);   /* Здесь первый параметр start_immediately = true " */
         bg_service.m_started_status = false;
     }
     /* Дублируем из пайпа в сокет Qt для отладки */
@@ -51,15 +51,12 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
     if (log_text_from_revit_addin.rfind("End of export", 0) == 0)  /* Сообщение от плагина begins with, что экспорт завершен */
     {
         LOG_SAVE << "Kиляем Rевит";
-        const HANDLE h_process = OpenProcess(PROCESS_TERMINATE, FALSE, launched_revit_process_id);
-        if (h_process == nullptr) {
+        if (const HANDLE h_process = OpenProcess(PROCESS_TERMINATE, FALSE, launched_revit_process_id); h_process == nullptr) {
             LOG_SAVE << "Failed to open the Revit's process with termination rights. Error: " << GetLastError();
         }
         else
         {
-            BOOL result = TerminateProcess(h_process, 0);
-
-            if (result) {
+	        if (TerminateProcess(h_process, 0)) {
                 LOG_SAVE << "Revit terminated successfully";
             }
             else {
@@ -85,7 +82,7 @@ std::string read_inf_flag(const LPCWSTR key_name)
 }
 
 std::wstring expand_environment_variables(const std::wstring& input) {
-    DWORD size = ExpandEnvironmentStringsW(input.c_str(), nullptr, 0);
+    const DWORD size = ExpandEnvironmentStringsW(input.c_str(), nullptr, 0);
     if (size == 0) return input;
 
     std::vector<wchar_t> buffer(size);
@@ -94,7 +91,7 @@ std::wstring expand_environment_variables(const std::wstring& input) {
 }
 
 std::string get_env(const std::string& env_var) {
-    std::string rret = "";
+    std::string rret;
     char* buf = nullptr;
     size_t sz = 0;
     if (_dupenv_s(&buf, &sz, env_var.c_str()) == 0 && buf != nullptr)
@@ -122,7 +119,8 @@ bool is_network_file_exists() {
     /* для проверки доступности сетевого файла -
      * имя, например L:\99_IT\00_ifc_export\pc-c421-173.sav */
     try {
-        return std::filesystem::exists("L:\\99_IT\\00_ifc_export\\" + get_host_name() + ".sav");
+        bool debug_sav_exists = std::filesystem::exists("L:\\99_IT\\00_ifc_export\\" + get_host_name() + ".sav");
+        return debug_sav_exists;
     }
     catch (...) {
         /* Если сеть отвалилась в момент проверки, fs::exists может бросить исключение */
@@ -131,7 +129,7 @@ bool is_network_file_exists() {
 }
 
 void ini_timer_check(bool start_immediately, bool* started_status) {
-    /* Проверяем сетевой диск с файлом .sav доступен (+для перемещения) или нет,
+    /* Проверяем сетевой диск с файлом .sav - доступен (+для перемещения) или нет,
      * если да, перемещаем его в views_sites.sav и стартуем экспорт   */
     std::future<bool> file_check_future = std::async(std::launch::async, is_network_file_exists);
     bool async_result_ready = false;
@@ -139,15 +137,17 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
 
     /* Неблокирующий цикл */
     while (!async_result_ready) {
-        /* Check status with 0 timeout - returns immediately */
+        /* timeout 0 - вернуть сразу */
         auto status = file_check_future.wait_for(std::chrono::milliseconds(0));
 
         if (status == std::future_status::ready) {
             sav_file_exists = file_check_future.get();
+
+            /* Начинаем удаленный экспорт */
             async_result_ready = true;
         }
         else {
-            // Main thread is free to do other things here
+            /* Работаем, в обычном режиме, с локальным .sav-файлом */
             std::cout << "Working on UI or other tasks...\n";
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -211,7 +211,7 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
             std::this_thread::sleep_for(std::chrono::seconds(20));
         }
     }
-    std::cout << "Final result: " << (sav_file_exists ? "Found" : "Not found\n");
+    LOG_SAVE << "debug: " << (sav_file_exists ? "Found" : "Not found\n");
 }
 
 
