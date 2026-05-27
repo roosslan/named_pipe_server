@@ -61,11 +61,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "alabuga.dev"
+            VALUE "CompanyName", "rasa"
             VALUE "FileDescription", "tcp & pipe bgHelper"
             VALUE "FileVersion", "6.22.5.26"
             VALUE "InternalName", "tcp & pipe bgHelper"
-            VALUE "LegalCopyright", "Copyright (C) alabuga.dev / 2022 - 2026"
+            VALUE "LegalCopyright", "Copyright (C) rasa / 2022 - 2026"
             VALUE "OriginalFilename", "bgHelper.exe"
             VALUE "ProductName", "tcp & pipe bgHelper"
             VALUE "ProductVersion", "6.22.5.26"
