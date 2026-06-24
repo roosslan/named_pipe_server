@@ -1,5 +1,5 @@
 
-#include "stdafx.h"
+#include "..\stdafx.h"
 
 //required for the api calls in ntsecapi and secext
 #pragma comment(lib, "Secur32")
