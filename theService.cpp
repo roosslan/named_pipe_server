@@ -4,7 +4,6 @@
 #include "theService.h"
 #include "helper_funcs.h"
 #include "sensitive_data.h"
-
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -38,10 +37,9 @@ CBgHelperSrv::CBgHelperSrv() {
 		return;
 	}
 
-	const std::string app_data = get_env("appdata");
-	const std::string ini_file = app_data + inf_config_file_path_;
+	inf_config_file_path_ = get_config_file_path();
 
-	const CA2W inf_config_path(ini_file.c_str());
+	const CA2W inf_config_path(inf_config_file_path_.c_str());
 	tcp_port_ = GetPrivateProfileIntW(L"Manufacturer", L"tcp_port", 7777, inf_config_path);	
 
 	/* Hide console window: */
@@ -54,7 +52,7 @@ CBgHelperSrv::CBgHelperSrv() {
 	CloseHandle(h_handle);  /* close handle before terminating */
 }
 
-bool CBgHelperSrv::socket_connect() {	
+bool CBgHelperSrv::socket_connect() {
 	auto wsa_res = WSAStartup(MAKEWORD(2, 0), &wsa_data_);
 	
 	int i_result;
@@ -114,7 +112,6 @@ BOOL CBgHelperSrv::InitInstance() {
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
-	inf_config_file_path_ = get_config_file_path();
 
 	LOG_SAVE << "SocketConnect()...";
 	socket_connect();	

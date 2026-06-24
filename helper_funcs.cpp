@@ -23,29 +23,45 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
     std::string log_text_from_revit_addin(buff);
     LOG_SAVE << "pipeMessageHandler: " << log_text_from_revit_addin;
 
-    if (log_text_from_revit_addin == "Begin of export\n") {  /* Сообщение от плагина */
-        LOG_SAVE << "m_startedStatus is set to false";
+    /* Сообщение от плагина */
+    if (log_text_from_revit_addin.starts_with("Begin of export")) {
+        LOG_SAVE << "m_started_status is set to false";
+/*
+        const std::string s_debug("m_started_status is set to false\n");
+        const auto cs_debug = new char[s_debug.size() + 1];
+        std::strcpy(cs_debug, s_debug.c_str());
+        send(bg_service.m_server_socket, cs_debug, (int)strlen(cs_debug), 0);
+        delete[] cs_debug;
+*/
         bg_service.m_started_status = false;
+
     }
-    if (log_text_from_revit_addin == "START_IMMEDIATELY") {    /* Сообщение от QML Exporter */
-        ini_timer_check(true, &bg_service.m_started_status);   /* Здесь первый параметр start_immediately = true " */
+
+    /* Сообщение от QML Exporter */
+    if (log_text_from_revit_addin == "START_IMMEDIATELY") {
+
+        /* первый параметр start_immediately = true: */
+        ini_timer_check(true, &bg_service.m_started_status);
         bg_service.m_started_status = false;
     }
     /* Дублируем из пайпа в сокет Qt для отладки */
     else if (bg_service.m_connected_to_qml)
     {
         send(bg_service.m_server_socket, buff, (int)strlen(buff), 0);
-	    constexpr int char_count = 60; /* split 60 chars */
-/*        const std::string s_buff(buff);
-        for (size_t i = 0; i < strlen(buff); i += char_count)
-        {
-            std::string str = s_buff.substr(i, char_count);
-            const auto cstr = new char[str.size() + 1];
-            std::strcpy(cstr, str.c_str());
-            send(bg_service.m_server_socket, cstr, (int)strlen(cstr), 0);
-            delete[] cstr;
-        }
-*/
+
+	     /* split 60 chars */
+/*      constexpr int char_count = 60;
+ *      const std::string s_buff(buff);
+ *      for (size_t i = 0; i < strlen(buff); i += char_count)
+ *      {
+ *          std::string str = s_buff.substr(i, char_count);
+ *          const auto cstr = new char[str.size() + 1];
+ *          std::strcpy(cstr, str.c_str());
+ *          send(bg_service.m_server_socket, cstr, (int)strlen(cstr), 0);
+ *          delete[] cstr;
+ *      }
+ */
+
     }
 
     if (log_text_from_revit_addin.rfind("End of export", 0) == 0)  /* Сообщение от плагина begins with, что экспорт завершен */
@@ -70,10 +86,7 @@ void pipe_message_handler(void* context, w32::CHandle& handle, CIOBuffer& input,
 
 std::string read_inf_flag(const LPCWSTR key_name)
 {
-    const std::string app_data = get_env("appdata");
-    const std::string ini_file = app_data + inf_file_path;
-
-    const CA2W inf_config_path(ini_file.c_str());
+    const CA2W inf_config_path(get_config_file_path().c_str());
 
     wchar_t ws_value[_MAX_FNAME] = L"";
     GetPrivateProfileStringW(L"ControlFlags", key_name, nullptr, ws_value, std::size(ws_value), inf_config_path);
@@ -148,14 +161,10 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
         }
         else {
             /* Работаем, в обычном режиме, с локальным .sav-файлом */
-            std::cout << "Working on UI or other tasks...\n";
+
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-
-            const std::string app_data = get_env("appdata");
-            const std::string ini_file = app_data + inf_file_path;
-
-            CA2W inf_config_path(ini_file.c_str());
+            CA2W inf_config_path(get_config_file_path().c_str());
             wchar_t ws_export_enabled[_MAX_FNAME] = L"";
 
             GetPrivateProfileStringW(L"ControlFlags", L"Enabled", nullptr, ws_export_enabled, std::size(ws_export_enabled), inf_config_path);
@@ -203,7 +212,12 @@ void ini_timer_check(bool start_immediately, bool* started_status) {
                     {
                         start_revit_process(revit_version.c_str());
                         bg_service.m_started_status = true;
-                        LOG_SAVE << "Started Revit process: " << revit_version;
+                        std::string started_record = "Started Revit " + s_revit_version + ", pid " + std::to_string(launched_revit_process_id);
+                        LOG_SAVE << started_record;
+
+                        send_buf = started_record.c_str();
+                        if (bg_service.m_connected_to_qml)
+                            send(bg_service.m_server_socket, send_buf, (int)strlen(send_buf), 0);
                     }
                     mu_lock.unlock();
                 }
@@ -302,8 +316,7 @@ HWND find_main_window(const DWORD process_id, const int timeout_ms = 10000) {
     return finder.m_found_window;
 }
 
-VOID start_revit_process(const LPCTSTR lp_application_name) {
-    // additional information
+VOID start_revit_process(const LPCTSTR fpath) {
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
 
@@ -312,8 +325,7 @@ VOID start_revit_process(const LPCTSTR lp_application_name) {
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    // start the program up
-    CreateProcess(lp_application_name, // the path
+    CreateProcess(fpath,             // the path
                   nullptr,           // Command line
                   nullptr,           // Process handle not inheritable
                   nullptr,           // Thread handle not inheritable
@@ -324,7 +336,6 @@ VOID start_revit_process(const LPCTSTR lp_application_name) {
 				  &si,               // Pointer to STARTUPINFO structure
 				  &pi                // Pointer to PROCESS_INFORMATION structure (removed extra parentheses)
     );
-    // Close process and thread handles. 
 
     CloseHandle(pi.hThread);
 

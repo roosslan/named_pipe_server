@@ -90,38 +90,38 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="boost_logger.cpp" />
-    <ClCompile Include="CEvent.cpp" />
-    <ClCompile Include="CHandle.cpp" />
-    <ClCompile Include="CIOBuffer.cpp" />
-    <ClCompile Include="CIOContext.cpp" />
-    <ClCompile Include="CNamedPipeServer.cpp" />
-    <ClCompile Include="CNamedPipeWorkerPool.cpp" />
-    <ClCompile Include="Exception.cpp" />
+    <ClCompile Include="cnamedps\CEvent.cpp" />
+    <ClCompile Include="cnamedps\CHandle.cpp" />
+    <ClCompile Include="cnamedps\CIOBuffer.cpp" />
+    <ClCompile Include="cnamedps\CIOContext.cpp" />
+    <ClCompile Include="cnamedps\CNamedPipeServer.cpp" />
+    <ClCompile Include="cnamedps\CNamedPipeWorkerPool.cpp" />
+    <ClCompile Include="cnamedps\Exception.cpp" />
     <ClCompile Include="helper_funcs.cpp" />
-    <ClCompile Include="LinkerDirectives.cpp" />
+    <ClCompile Include="cnamedps\LinkerDirectives.cpp" />
     <ClCompile Include="mainNamedPipeServer.cpp" />
-    <ClCompile Include="String.cpp" />
+    <ClCompile Include="cnamedps\String.cpp" />
     <ClCompile Include="theService.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="boost_logger.h" />
-    <ClInclude Include="CBuffer.h" />
-    <ClInclude Include="CEvent.h" />
-    <ClInclude Include="CHandle.h" />
-    <ClInclude Include="CIOBuffer.h" />
-    <ClInclude Include="CIOContext.h" />
-    <ClInclude Include="CNamedPipeServer.h" />
-    <ClInclude Include="CNamedPipeWorkerPool.h" />
-    <ClInclude Include="Exception.h" />
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="cnamedps\CBuffer.h" />
+    <ClInclude Include="cnamedps\CEvent.h" />
+    <ClInclude Include="cnamedps\CHandle.h" />
+    <ClInclude Include="cnamedps\CIOBuffer.h" />
+    <ClInclude Include="cnamedps\CIOContext.h" />
+    <ClInclude Include="cnamedps\CNamedPipeServer.h" />
+    <ClInclude Include="cnamedps\CNamedPipeWorkerPool.h" />
+    <ClInclude Include="cnamedps\Exception.h" />
+    <ClInclude Include="cnamedps\framework.h" />
     <ClInclude Include="helper_funcs.h" />
-    <ClInclude Include="PlatformIncludes.h" />
+    <ClInclude Include="cnamedps\PlatformIncludes.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sensitive_data.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="StringHandling.h" />
+    <ClInclude Include="cnamedps\StringHandling.h" />
     <ClInclude Include="theService.h" />
-    <ClInclude Include="w32.h" />
+    <ClInclude Include="cnamedps\w32.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="pipeSrv.rc" />

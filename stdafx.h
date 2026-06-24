@@ -52,7 +52,7 @@
 #include <string_view>
 
 #include "boost_logger.h"
-#include "w32.h"
+#include "cnamedps\w32.h"
 
 using namespace w32;
 

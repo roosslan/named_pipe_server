@@ -9,8 +9,8 @@
 #include <ws2tcpip.h>
 #include <tlhelp32.h>
 
-#include "CHandle.h"
-#include "CIOBuffer.h"
+#include "cnamedps\CHandle.h"
+#include "cnamedps\CIOBuffer.h"
 
 struct active_object {
     template < typename FN > active_object(FN fn) : thread([this, fn] { while (alive) fn(); }) {}
