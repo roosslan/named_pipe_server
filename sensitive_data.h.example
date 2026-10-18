@@ -1,0 +1,11 @@
+#pragma once
+
+/* Шаблон для sensitive_data.h (сам файл в репозиторий не попадает).
+ * Необходимо скопировать в sensitive_data.h и подставить реальные пути.
+ * Оба пути задаются относительно %APPDATA%. */
+
+/* INI-файл ifc_exporter'а: секции [Manufacturer] и [ControlFlags] */
+constexpr char inf_file_path[] = "\\vendor\\ifc_exporter\\config.inf";
+
+/* Лог bgHelper'а; %N - номер файла при ротации */
+constexpr wchar_t log_file_path[] = L"\\vendor\\bg_helper\\bg_helper_%N.log";

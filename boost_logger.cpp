@@ -1,10 +1,9 @@
-#include <Windows.h> /* ����� ������, ������ ��� C1189: MFC requires use of Winsock2.h */
+#include <Windows.h> /* Самый первый, потому что C1189: MFC requires use of Winsock2.h */
 #include <Shlwapi.h>
 
 #include "boost_logger.h"
 #include "sensitive_data.h"
 
-#include <boost/locale.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -31,17 +30,16 @@ void rLogger::init_logging() {
     
     boost::log::add_common_attributes();
 
+    /* add_console_log сам регистрирует sink в core, повторный add_sink дублировал бы вывод */
     const auto console_sink = boost::log::add_console_log(std::clog);
     console_sink->set_formatter(&log_formatter);
-    logging::core::get()->add_sink(console_sink);
 
     const auto fs_sink = boost::log::add_file_log(
         boost::log::keywords::file_name = roaming_directory + log_file_path,
-        keywords::format = "%TimeStamp% % Message % ",
+        keywords::format = "%TimeStamp% %Message%",
         boost::log::keywords::rotation_size = 10 * 1024 * 1024,
         boost::log::keywords::min_free_space = 30 * 1024 * 1024,
         boost::log::keywords::open_mode = std::ios_base::app);
-    std::locale loc = boost::locale::generator()("ru_RU.UTF-8");
     fs_sink->locked_backend()->auto_flush(true);
 
     LOG_SAVE << "logger initialized. " << "bgHelper version is " << bg_helper_version;

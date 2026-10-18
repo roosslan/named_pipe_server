@@ -25,9 +25,17 @@ struct active_object {
     std::thread thread;
 };
 
-static std::string get_host_name();
-bool is_network_file_exists();
-void ini_timer_check(bool start_immediately, bool* started_status);
+/* Неблокирующая проверка .sav-файла на сетевом диске (задел под удалённый экспорт).
+ * poll() вызывается периодически из одного потока; результат пишется в лог при изменении */
+class remote_sav_checker {
+    std::future<bool> check_;
+    int last_state_ = -1;   /* -1 - ещё не проверялось */
+public:
+    void poll();
+};
+
+bool is_network_file_exists(const std::string& remote_sav_dir);
+void ini_timer_check(bool start_immediately);
 
 void pipe_message_handler(
 	void* context,
@@ -35,7 +43,14 @@ void pipe_message_handler(
 	w32::CIOBuffer& input,
 	w32::CIOBuffer& output);
 
-void start_revit_process(LPCTSTR lp_application_name);
+/* Запущенный bgHelper'ом процесс Revit. Хендл процесса хранится до завершения,
+ * чтобы TerminateProcess не попал в чужой процесс с переиспользованным pid */
+/* Возвращает pid запущенного процесса, 0 - при ошибке */
+DWORD start_revit_process(const std::string& revit_exe_path);
+/* pid запущенного ранее Revit, если он ещё работает, иначе 0 */
+DWORD running_revit_pid();
+void terminate_revit_process();
+
 std::string get_config_file_path();
 std::string read_inf_flag(LPCWSTR key_name);
 bool is_process_running(const wchar_t* process_name);
@@ -45,6 +60,3 @@ std::wstring expand_environment_variables(const std::wstring& input);
 
 /* _dupenv_s wrapper, C Runtime Library (CRT) */
 std::string get_env(const std::string& env_var);
-
-void receiveData(int socket, void (*callback)(int, const char*, SSIZE_T));
-void onDataReceived(int socket, const char* buffer, SSIZE_T bytesReceived);

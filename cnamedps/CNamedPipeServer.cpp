@@ -42,13 +42,15 @@ namespace w32
 		memset(&m_ConnectOverlap, 0, sizeof(m_ConnectOverlap));
 		m_ConnectOverlap.hEvent = m_ConnectEvent;
 
-		//Create a named pipe server endpoint once.
-		//This is just to validate the supplied parameters. If they are invalid it's
-		//better to find out now than when this is offloaded into a worker thread.
-		CHandle pipeHandle = CreateNamedPipeHandle();
+		//Первый экземпляр канала создаётся здесь: так неверные параметры обнаруживаются
+		//сразу, а не в рабочем потоке.
+		//FILE_FLAG_FIRST_PIPE_INSTANCE - ошибка, если имя уже занято другим процессом.
+		//Экземпляр не закрывается, а используется как первый ожидающий подключения,
+		//поэтому имя канала не освобождается и не может быть перехвачено.
+		m_FirstPipeHandle = CreateNamedPipeHandle(true);
 
 		//check the reason for failure
-		if (pipeHandle == INVALID_HANDLE_VALUE) {
+		if (!m_FirstPipeHandle.IsValid()) {
 			throw ExWin32Error(L"CreateNamedPipeW " + lpName);
 		}
 
@@ -78,11 +80,12 @@ namespace w32
 
 	}
 
-	HANDLE CNamedPipeServer::CreateNamedPipeHandle()
+	HANDLE CNamedPipeServer::CreateNamedPipeHandle(bool firstInstance)
 	{
+		//PIPE_REJECT_REMOTE_CLIENTS - только локальные клиенты, подключение по сети (SMB) запрещено
 		return CreateNamedPipeW(m_Name.c_str(),
-			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED | (firstInstance ? FILE_FLAG_FIRST_PIPE_INSTANCE : 0),
+			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS,
 			m_MaxInstances,
 			m_OutBufferSize,
 			m_InBufferSize,
@@ -116,11 +119,18 @@ namespace w32
 
 		while (!server->IsShuttingDown())
 		{
-			//Create a new server-side endpoint.
-			CHandle pipeHandle = server->CreateNamedPipeHandle();
+			//Первый раз используется экземпляр из конструктора, далее создаются новые
+			CHandle pipeHandle;
+			if (server->m_FirstPipeHandle.IsValid()) {
+				pipeHandle = server->m_FirstPipeHandle;
+				server->m_FirstPipeHandle.CloseHandle();
+			}
+			else {
+				pipeHandle = server->CreateNamedPipeHandle(false);
+			}
 
 			//check the reason for failure
-			if (pipeHandle == INVALID_HANDLE_VALUE) {
+			if (!pipeHandle.IsValid()) {
 				DWORD error = GetLastError();
 				//If all possible connections are in use, we cannot create new endpoints.
 				//We wait for a bit before returning because otherwise we'll be in a CPU
@@ -134,6 +144,7 @@ namespace w32
 				else {
 					server->Shutdown();
 					retVal = error;
+					break;
 				}
 
 			}
@@ -153,6 +164,7 @@ namespace w32
 				else {
 					server->Shutdown();
 					retVal = error;
+					break;
 				}
 			}
 
@@ -165,8 +177,8 @@ namespace w32
 			//immediately. Meanwhile, we loop back around, start another wait, which will then
 			//immediately fall through, detect the shutdown, and perform the shutdown sequence.
 
-			DWORD retVal = WaitForMultipleObjects(2, waitObjects, FALSE, INFINITE);
-			if (retVal == ConnectEventIndex) {
+			DWORD waitResult = WaitForMultipleObjects(2, waitObjects, FALSE, INFINITE);
+			if (waitResult == ConnectEventIndex) {
 				//A client connected. Offload the request to a worker thread and get ready
 				//to wait for another client
 				try
@@ -180,7 +192,7 @@ namespace w32
 					//be cleaned up automatically when the local variable goes out of scope
 				}
 			}
-			else if (retVal == ShutdownEventIndex) {
+			else if (waitResult == ShutdownEventIndex) {
 				//We don't have to do anything special here.
 				//The loop will terminate because IsShuttingDown is true
 			}

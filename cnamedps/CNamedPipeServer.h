@@ -32,6 +32,7 @@ namespace w32
 		DWORD m_InBufferSize;				//IO buffer length of the pipe object
 
 		CHandle m_ConnectionHandlerThread;				//thread which handles connection requests
+		CHandle m_FirstPipeHandle;			//первый экземпляр канала из конструктора, удерживает имя канала
 
 		OVERLAPPED m_ConnectOverlap;		//for asynchronous handling of the connection request
 		CAutoResetEvent m_ConnectEvent;		//event that fires when a client connects
@@ -40,7 +41,7 @@ namespace w32
 
 		CNamedPipeWorkerPool m_WorkerPool;	//the pool which handles all connection IO
 
-		HANDLE CreateNamedPipeHandle();
+		HANDLE CreateNamedPipeHandle(bool firstInstance);
 
 	public:
 

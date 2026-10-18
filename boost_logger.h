@@ -16,11 +16,6 @@ namespace rLogger
 {
 	std::string get_self_version();
 	inline const std::string bg_helper_version = get_self_version();
-	static 
-		_Check_return_
-		_Post_equals_last_error_
-		DWORD
-		WINAPI LAST_ERROR;
 	void init_logging();
 	void log_formatter(logging::record_view const& rec, logging::formatting_ostream& strm);
 	std::string path_to_filename(const std::string& path);
