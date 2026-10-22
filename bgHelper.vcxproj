@@ -41,16 +41,21 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <!-- Корень Boost: свойство MSBuild BoostRoot, иначе переменная окружения BOOST_ROOT, иначе путь по умолчанию -->
+    <BoostRoot Condition="'$(BoostRoot)'==''">$(BOOST_ROOT)</BoostRoot>
+    <BoostRoot Condition="'$(BoostRoot)'==''">C:\MyDocs\boost_1_86_0</BoostRoot>
+    <BoostLibDir Condition="'$(BoostLibDir)'==''">$(BoostRoot)\lib64-msvc-14.3</BoostLibDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <ExternalIncludePath>C:\MyDocs\boost_1_86_0;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>C:\MyDocs\boost_1_86_0\lib64-msvc-14.3;$(LibraryPath)</LibraryPath>
+    <ExternalIncludePath>$(BoostRoot);$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(BoostLibDir);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <ExternalIncludePath>C:\MyDocs\boost_1_86_0;$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
-    <LibraryPath>C:\MyDocs\boost_1_86_0\lib64-msvc-14.3;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
+    <ExternalIncludePath>$(BoostRoot);$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(BoostLibDir);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -58,7 +63,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\MyDocs\boost_1_86_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -76,6 +81,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -99,7 +105,7 @@
     <ClCompile Include="cnamedps\Exception.cpp" />
     <ClCompile Include="helper_funcs.cpp" />
     <ClCompile Include="cnamedps\LinkerDirectives.cpp" />
-    <ClCompile Include="mainNamedPipeServer.cpp" />
+    <ClCompile Include="console_main.cpp" />
     <ClCompile Include="cnamedps\String.cpp" />
     <ClCompile Include="theService.cpp" />
   </ItemGroup>

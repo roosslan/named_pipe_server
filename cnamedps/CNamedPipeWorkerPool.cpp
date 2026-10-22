@@ -59,7 +59,7 @@ namespace w32
 		{
 			m_WaitObjects[i] = m_IOContext[i].IOEvent;
 			m_IOContext[i].InputBuffer.Reset(nInBufferSize);
-			m_IOContext[i].OutputBuffer.Reset(nInBufferSize);
+			m_IOContext[i].OutputBuffer.Reset(nOutBufferSize);
 		}
 
 
@@ -70,7 +70,7 @@ namespace w32
 			//connections and only when connections are accepted will workers be triggered
 			for (DWORD i = 0; i < m_NumThreads; i++) {
 				m_ServerThread[i] = CreateThread(NULL, 0, WorkerThreadFunc, this, 0, NULL);
-				if (m_ServerThread == NULL) {
+				if (!m_ServerThread[i].IsValid()) {
 					throw ExWin32Error(L"CNamedPipeWorker::CNamedPipeWorker CreateThread");
 				}
 			}
@@ -143,7 +143,8 @@ namespace w32
 		if (retVal == WAIT_FAILED)
 			throw ExWin32Error("CNamedPipeWorker::WaitUntilFinished WaitForMultipleObjects");
 
-		return retVal == WAIT_TIMEOUT;
+		//true - все потоки завершились, false - истёк таймаут
+		return retVal != WAIT_TIMEOUT;
 	}
 
 	//Add an active connection to the list of active connections and initiate
@@ -266,6 +267,8 @@ namespace w32
 				if (!ReadFile(pipe, ioBuffer.WritePtr(), ioBuffer.SizeRemaining(), &bytesRead, NULL)) {
 					throw ExWin32Error("ReadFile failed for remaining bytes in pipe");
 				}
+				ioBuffer.SetOffset(
+					ioBuffer.Offset() + bytesRead);
 			}
 			else {
 				throw ExWin32Error("Overlapped ReadFile failed.");
@@ -319,6 +322,10 @@ namespace w32
 					ioContext->IOHandle,
 					ioContext->InputBuffer,
 					&ioContext->Overlapped);
+
+				//обработчик пишет ответ только при необходимости, поэтому ответ
+				//на предыдущее сообщение не должен уйти повторно
+				ioContext->OutputBuffer.Reset();
 
 				worker->m_MessageHandler(
 					worker->m_Context,

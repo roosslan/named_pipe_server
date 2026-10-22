@@ -37,7 +37,7 @@
     <ClCompile Include="boost_logger.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="mainNamedPipeServer.cpp">
+    <ClCompile Include="console_main.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
