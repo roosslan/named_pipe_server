@@ -1,4 +1,4 @@
-#include <winsock2.h>
+﻿#include <winsock2.h>
 #include <ws2tcpip.h>
 
 #if !defined(AFX_BG_H__115F4224_5CD5_11D1_ABBA_00A0243D1382__INCLUDED_)
@@ -21,7 +21,7 @@
 class CBgHelperSrv final : public CWinApp {
 	std::string inf_config_file_path_;
 	SOCKADDR_IN addr_{};
-	int tcp_port_ = 7777;
+	int tcp_port_ = 6777;
 	bool wsa_started_ = false;
 
 	/* TCP-сокет до ifc_exporter (QML). Используется из нескольких потоков, поэтому

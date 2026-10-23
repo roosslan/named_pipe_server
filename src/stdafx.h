@@ -1,4 +1,4 @@
-// stdafx.h: include file for standard system include files,
+﻿// stdafx.h: include file for standard system include files,
 // or project specific include files that are used frequently, but
 // are changed infrequently
 
@@ -51,7 +51,7 @@
 #include <thread>
 #include <string_view>
 
-#include "boost_logger.h"
+#include "logger.h"
 #include "cnamedps\w32.h"
 
 using namespace w32;
