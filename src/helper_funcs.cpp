@@ -1,9 +1,9 @@
-/* last change 16.10.2026 */
+﻿/* last change 16.10.2026 */
 
 #include "stdafx.h"
 
 #include "helper_funcs.h"
-#include "theService.h"
+#include "the_service.h"
 #include "sensitive_data.h"
 
 #include <algorithm>
@@ -72,11 +72,11 @@ void pipe_message_handler(void* /*context*/, w32::CHandle& /*handle*/, CIOBuffer
     if (const auto end = message.find('\0'); end != std::string::npos)
         message.resize(end);
 
-    LOG_SAVE << "pipeMessageHandler: " << message;
+    LOG_SAVE("pipeMessageHandler: {}", message);
 
     /* Сообщение от плагина */
     if (message.starts_with("Begin of export")) {
-        LOG_SAVE << "Export has begun";
+        LOG_SAVE("Export has begun");
     }
 
     /* Сообщение от QML Exporter. Обрабатывается в основном цикле, чтобы не занимать
@@ -91,7 +91,7 @@ void pipe_message_handler(void* /*context*/, w32::CHandle& /*handle*/, CIOBuffer
 
     if (message.starts_with("End of export"))  /* Сообщение от плагина, что экспорт завершен */
     {
-        LOG_SAVE << "Kиляем Rевит";
+        LOG_SAVE("Kиляем Rевит");
         terminate_revit_process();
     }
 }
@@ -142,7 +142,7 @@ void remote_sav_checker::poll() {
 
         const int state = check_.get() ? 1 : 0;
         if (state != last_state_) {
-            LOG_SAVE << "Remote .sav file: " << (state ? "Found" : "Not found");
+            LOG_SAVE("Remote .sav file: {}", state ? "Found" : "Not found");
             last_state_ = state;
         }
     }
@@ -159,7 +159,7 @@ void ini_timer_check(const bool start_immediately) {
 
     if (read_inf_flag(L"Enabled") != "true") {
         if (start_immediately)
-            LOG_SAVE << "START_IMMEDIATELY ignored: export is disabled in INI";
+            LOG_SAVE("START_IMMEDIATELY ignored: export is disabled in INI");
         return;
     }
 
@@ -184,7 +184,7 @@ void ini_timer_check(const bool start_immediately) {
     /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
 
     if (const DWORD running_pid = running_revit_pid(); running_pid != 0) {
-        LOG_SAVE << "Revit launched earlier is still running (pid " << running_pid << ") - not starting another one";
+        LOG_SAVE("Revit launched earlier is still running (pid {}) - not starting another one", running_pid);
         return;
     }
 
@@ -193,7 +193,7 @@ void ini_timer_check(const bool start_immediately) {
     /* Какую версию Revit запускать - берём из ComboBox'a ifc_exporter'a (из INF-файла) */
     const std::string s_revit_version = read_inf_flag(L"RevitVersion");
     if (!is_valid_revit_version(s_revit_version)) {
-        LOG_SAVE << "Invalid RevitVersion in INI: '" << s_revit_version << "'";
+        LOG_SAVE("Invalid RevitVersion in INI: '{}'", s_revit_version);
         return;
     }
     const std::string revit_path = get_program_files_dir() + "\\Autodesk\\Revit " + s_revit_version + "\\Revit.exe";
@@ -206,7 +206,7 @@ void ini_timer_check(const bool start_immediately) {
     }
 
     const std::string started_record = "Started Revit " + s_revit_version + ", pid " + std::to_string(started_pid);
-    LOG_SAVE << started_record;
+    LOG_SAVE("{}", started_record);
     bg_service.socket_send(started_record);
 }
 
@@ -249,7 +249,7 @@ DWORD start_revit_process(const std::string& revit_exe_path) {
                         &si,                    // Pointer to STARTUPINFO structure
                         &pi))                   // Pointer to PROCESS_INFORMATION structure
     {
-        LOG_SAVE << "CreateProcess failed for " << revit_exe_path << ", error " << GetLastError();
+        LOG_SAVE("CreateProcess failed for {}, error {}", revit_exe_path, GetLastError());
         return 0;
     }
 
@@ -273,18 +273,18 @@ DWORD running_revit_pid() {
 void terminate_revit_process() {
     std::lock_guard lock(revit_mu);
     if (revit_process == nullptr) {
-        LOG_SAVE << "No Revit process was launched by bgHelper - nothing to terminate";
+        LOG_SAVE("No Revit process was launched by bgHelper - nothing to terminate");
         return;
     }
 
     if (WaitForSingleObject(revit_process, 0) != WAIT_TIMEOUT) {
-        LOG_SAVE << "Revit (pid " << revit_process_id << ") has already exited";
+        LOG_SAVE("Revit (pid {}) has already exited", revit_process_id);
     }
     else if (TerminateProcess(revit_process, 0)) {
-        LOG_SAVE << "Revit terminated successfully";
+        LOG_SAVE("Revit terminated successfully");
     }
     else {
-        LOG_SAVE << "Failed to terminate process. Error: " << GetLastError();
+        LOG_SAVE("Failed to terminate process. Error: {}", GetLastError());
     }
 
     CloseHandle(revit_process);

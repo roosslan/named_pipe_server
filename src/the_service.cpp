@@ -1,7 +1,7 @@
-/* last changed 16.10.26 */
+﻿/* last changed 16.10.26 */
 #include "stdafx.h"
 
-#include "theService.h"
+#include "the_service.h"
 #include "helper_funcs.h"
 #include "sensitive_data.h"
 #include <winsock2.h>
@@ -90,7 +90,7 @@ void CBgHelperSrv::socket_send(std::string_view data) {
 	while (!data.empty()) {
 		const int sent = send(socket_, data.data(), static_cast<int>(data.size()), 0);
 		if (sent == SOCKET_ERROR) {
-			LOG_SAVE << "send() failed, WSA error " << WSAGetLastError() << ", closing socket";
+			LOG_SAVE("send() failed, WSA error {}, closing socket", WSAGetLastError());
 			close_socket_locked();
 			return;
 		}
@@ -133,14 +133,14 @@ BOOL CBgHelperSrv::InitInstance() {
 	/* Единственный экземпляр: мьютекс удерживается до ExitInstance */
 	instance_mutex_ = CreateMutex(nullptr, FALSE, sz_unique_named_mutex);
 	if (instance_mutex_ == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
-		LOG_SAVE << "The program is already running - exiting.";
+		LOG_SAVE("The program is already running - exiting.");
 		return FALSE;
 	}
 
 	inf_config_file_path_ = get_config_file_path();
 
 	const CA2W inf_config_path(inf_config_file_path_.c_str());
-	tcp_port_ = GetPrivateProfileIntW(L"Manufacturer", L"tcp_port", 7777, inf_config_path);
+	tcp_port_ = GetPrivateProfileIntW(L"Manufacturer", L"tcp_port", 6777, inf_config_path);
 
 	/* Hide console window: */
 	::ShowWindow(::GetConsoleWindow(), SW_HIDE);
@@ -148,7 +148,7 @@ BOOL CBgHelperSrv::InitInstance() {
 	stop_event_ = CreateEventW(nullptr, TRUE, FALSE, sz_stop_event_name);
 	start_event_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 	if (stop_event_ == nullptr || start_event_ == nullptr) {
-		LOG_SAVE << "CreateEvent failed, error " << GetLastError();
+		LOG_SAVE("CreateEvent failed, error {}", GetLastError());
 		return FALSE;
 	}
 	SetConsoleCtrlHandler(on_console_ctrl, TRUE);
@@ -156,17 +156,17 @@ BOOL CBgHelperSrv::InitInstance() {
 	WSADATA wsa_data;
 	wsa_started_ = WSAStartup(MAKEWORD(2, 2), &wsa_data) == 0;
 	if (!wsa_started_)
-		LOG_SAVE << "WSAStartup failed";
+		LOG_SAVE("WSAStartup failed");
 
 	addr_.sin_family = AF_INET;
 	addr_.sin_port = htons(static_cast<u_short>(tcp_port_));
 	InetPtonA(AF_INET, "127.0.0.1", &addr_.sin_addr);
 
-	LOG_SAVE << "SocketConnect()...";
+	LOG_SAVE("SocketConnect()...");
 	socket_connect();
 
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	LOG_SAVE << "CoInitializeEx HRESULT: " << hr;
+	LOG_SAVE("CoInitializeEx HRESULT: {}", hr);
 
 	{
 		/* Фоновое (пере)подключение к ifc_exporter, останавливается при выходе из блока */
@@ -183,7 +183,7 @@ BOOL CBgHelperSrv::InitInstance() {
 
 	close_socket();
 
-	LOG_SAVE << "InitInstance: Exit";
+	LOG_SAVE("InitInstance: Exit");
 
 	// Since the dialog has been closed, return FALSE so that we exit the
 	//  application, rather than start the application's message pump.
@@ -195,7 +195,7 @@ BOOL CBgHelperSrv::InitInstance() {
 void CBgHelperSrv::run_pipe_server() {
 	try
 	{
-		LOG_SAVE << "Starting pipeServer... ";
+		LOG_SAVE("Starting pipeServer... ");
 		CNamedPipeServer pipe_server(sz_pipe_name,
 			pipe_message_handler,
 			nullptr,
@@ -203,7 +203,7 @@ void CBgHelperSrv::run_pipe_server() {
 			256,
 			10);
 
-		LOG_SAVE << "Starting pipeServer connections";
+		LOG_SAVE("Starting pipeServer connections");
 		pipe_server.StartServing();
 
 		remote_sav_checker sav_checker;
@@ -218,30 +218,30 @@ void CBgHelperSrv::run_pipe_server() {
 			}
 			catch (exception& ex)
 			{
-				LOG_SAVE << "Timer check failed: " << ex.what();
+				LOG_SAVE("Timer check failed: {}", ex.what());
 			}
 
 			const DWORD wait_result = WaitForMultipleObjects(2, wait_objects, FALSE, timer_period_ms);
 			if (wait_result == WAIT_OBJECT_0) {
-				LOG_SAVE << "Stop requested";
+				LOG_SAVE("Stop requested");
 				break;
 			}
 			if (wait_result == WAIT_FAILED) {
-				LOG_SAVE << "WaitForMultipleObjects failed, error " << GetLastError();
+				LOG_SAVE("WaitForMultipleObjects failed, error {}", GetLastError());
 				break;
 			}
 			start_immediately = (wait_result == WAIT_OBJECT_0 + 1);
 		}
 
-		LOG_SAVE << "Initiating shutdown";
+		LOG_SAVE("Initiating shutdown");
 		pipe_server.Shutdown();
-		LOG_SAVE << "Waiting until everything is shutdown";
+		LOG_SAVE("Waiting until everything is shutdown");
 		pipe_server.WaitUntilFinished(INFINITE);
-		LOG_SAVE << "Shutdown finished";
+		LOG_SAVE("Shutdown finished");
 	}
 	catch (exception& ex)
 	{
-		LOG_SAVE << ex.what();
+		LOG_SAVE("{}", ex.what());
 	}
 }
 

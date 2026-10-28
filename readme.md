@@ -1,10 +1,6 @@
-# bgHelper
+# IFC exporter background helper
 
-Сервер именованного канала и TCP-клиент для проекта IFC exporter.
-
-Частично использует класс CNamedPipeServer Bruno van Dooren [MVP VC++] (каталог `cnamedps`, лицензия MIT).
-
-## Назначение
+Сервер именованного канала (named pipe server) и TCP-клиент для проекта IFC exporter.
 
 - Принимает сообщения плагина Revit через канал `\\.\Pipe\bghelperpipe` (только локальные клиенты).
 - Пересылает их в `ifc_exporter.exe` по TCP на `127.0.0.1:<tcp_port>`.
@@ -14,15 +10,12 @@
 
 ## Сборка
 
-Требуется Visual Studio 2022 (v143, MFC) и Boost 1.86 x64 с собранными библиотеками (Boost.Log).
+1. Клонировать репозиторий вместе с submodule: `git clone --recursive <url>`.
+   Для уже склонированного репозитория необходимо выполнить `git submodule update --init`.
+2. Скопировать `sensitive_data.h.example` в `src/sensitive_data.h` и указать реальные пути.
+3. Открыть `bgHelper.sln` и собрать конфигурацию x64.
 
-1. Скопировать `sensitive_data.h.example` в `sensitive_data.h` и указать реальные пути.
-2. Указать путь к Boost одним из способов (по убыванию приоритета):
-   - свойство MSBuild `BoostRoot` (например, `msbuild bgHelper.sln /p:BoostRoot=D:\boost_1_86_0`);
-   - переменная окружения `BOOST_ROOT`;
-   - иначе используется `C:\MyDocs\boost_1_86_0`.
-
-   Библиотеки ищутся в `$(BoostRoot)\lib64-msvc-14.3`, этот путь переопределяется свойством `BoostLibDir`.
+Лог пишется в файл из sensitive_data.h с ротацией по 10 МБ (хранятся до 5 предыдущих файлов).
 
 Debug собирается как консольное приложение (окно консоли скрывается при запуске), Release - как приложение без консоли со статически подключённым MFC.
 
@@ -32,15 +25,14 @@ Debug собирается как консольное приложение (о�
 
 | Секция | Ключ | Назначение |
 |---|---|---|
-| `Manufacturer` | `tcp_port` | порт ifc_exporter, по умолчанию 7777 |
+| `Manufacturer` | `tcp_port` | порт ifc_exporter, по умолчанию 6777 |
 | `ControlFlags` | `Enabled` | `true` - экспорт по расписанию разрешён |
 | `ControlFlags` | `Date`, `Time` | дата `ДД.ММ.ГГГГ` и время `ЧЧ:ММ` запуска |
-| `ControlFlags` | `RevitVersion` | версия Revit из 4 цифр, например `2024` |
-| `ControlFlags` | `RemoteSavDir` | каталог .sav-файлов удалённого экспорта, по умолчанию `L:\99_IT\00_ifc_export\` |
+| `ControlFlags` | `RevitVersion` | версия Revit из 4 цифр, например `2027` |
+| `ControlFlags` | `RemoteSavDir` | каталог .sav-файлов удалённого экспорта |
 
 ## Завершение работы
 
 Для корректного завершения необходимо установить именованное событие `Local\bghelper_stop_event`
-(или нажать Ctrl+C в консоли Debug-сборки).
 
-Обновлено 16.10.2026
+Частично использует код Bruno van Dooren (лицензия MIT)
