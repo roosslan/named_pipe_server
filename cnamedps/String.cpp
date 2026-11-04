@@ -5,16 +5,25 @@
 
 namespace w32
 {
-    //convert a wstring to a string
+    //convert a wstring to a string (UTF-8)
+    //std::wstring_convert устарел в C++17, поэтому преобразование через WinAPI
     string WStringToString(wstring const& ws) {
-        wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
-        return converter.to_bytes(ws.c_str());
+        if (ws.empty())
+            return {};
+        const int size = WideCharToMultiByte(CP_UTF8, 0, ws.data(), static_cast<int>(ws.size()), nullptr, 0, nullptr, nullptr);
+        string result(static_cast<size_t>(size), '\0');
+        WideCharToMultiByte(CP_UTF8, 0, ws.data(), static_cast<int>(ws.size()), result.data(), size, nullptr, nullptr);
+        return result;
     }
 
-    //convert a string to wstring
+    //convert a string (UTF-8) to wstring
     wstring StringToWString(string const& s) {
-        wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
-        return converter.from_bytes(s.c_str());
+        if (s.empty())
+            return {};
+        const int size = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
+        wstring result(static_cast<size_t>(size), L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), result.data(), size);
+        return result;
     }
 
     //convert to lowercase

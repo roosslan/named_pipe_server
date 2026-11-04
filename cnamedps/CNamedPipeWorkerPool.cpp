@@ -175,7 +175,7 @@ namespace w32
 		{
 			InitiateRead(connection, ioContext->InputBuffer, &ioContext->Overlapped);
 		}
-		catch (exception& ex)
+		catch (exception&)
 		{
 			//an exception at this point means that the IO operation was never started and the
 			//connection is not operational. Remove the handle because from the worker's point
@@ -355,7 +355,7 @@ namespace w32
 					&ioContext->Overlapped);
 
 			}
-			catch (exception& ex)
+			catch (exception&)
 			{
 				//Something went catastrophically wrong with the communication.
 				//It is essentially unknowable what exactly. If it is related to the handle

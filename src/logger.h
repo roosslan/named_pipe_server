@@ -14,7 +14,6 @@ namespace rLogger
 	std::string get_self_version();
 	inline const std::string bg_helper_version = get_self_version();
 	void init_logging();
-	std::string get_log_folder_path();
 	std::wstring expand_environment_variables(const std::wstring& input);
 };
 

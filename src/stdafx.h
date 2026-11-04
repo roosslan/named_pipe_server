@@ -33,8 +33,6 @@
 #include <vector>
 #include <set>
 #include <shlobj.h>
-#include <codecvt> // for std::codecvt_utf8
-#include <locale>  // for std::wstring_convert
 #include <commctrl.h>
 #include <shellapi.h>
 #include <objbase.h>
