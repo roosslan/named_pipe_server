@@ -54,6 +54,9 @@
     <ClInclude Include="src\logger.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="src\socket_io.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="src\resource.h">
       <Filter>Headers</Filter>
     </ClInclude>

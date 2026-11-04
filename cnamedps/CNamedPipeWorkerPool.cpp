@@ -22,6 +22,7 @@
 
 namespace w32
 {
+	constexpr DWORD max_message_size = 1024 * 1024;
 	/// <summary>
 	/// Create a new pool threads for handling IO connections for a named pipe.
 	/// </summary>
@@ -48,6 +49,8 @@ namespace w32
 
 		if (!m_MessageHandler)
 			throw AppException("Invalid messageHandler specified");
+		if (nInBufferSize == 0 || nInBufferSize > max_message_size)
+			throw AppException("Input buffer size must be between 1 byte and 1 MiB");
 
 		//The final position in the array of events and wait objects is the shutdown event.
 		//this makes most sense because then there is a 1-1 relationship between the indices
@@ -84,13 +87,10 @@ namespace w32
 			//leaving some threads lurking around, waiting on an event for which the handle
 			//will be closed is bad form
 			//The handles would be closed via RAII but that doesn't stop the threads from running.
-			for (DWORD i = 0; i < MAX_THREADS; i++) {
+			Shutdown();
+			for (DWORD i = 0; i < MAX_THREADS; i++)
 				if (m_ServerThread[i].IsValid())
-#pragma warning( push)
-#pragma warning( disable : 6258) 
-					TerminateThread(m_ServerThread[i], -1);
-#pragma warning (pop)
-			}
+					WaitForSingleObject(m_ServerThread[i], INFINITE);
 			throw;
 		}
 
@@ -124,9 +124,8 @@ namespace w32
 	{
 		for (DWORD i = 0; i < MAX_INSTANCES; i++)
 		{
-			if (m_IOContext[i].IOHandle.IsValid()) {
-				m_IOContext[i].IOHandle = NULL;
-			}
+			std::lock_guard lock(m_IOContext[i].Mutex);
+			CloseConnection(m_IOContext[i]);
 		}
 	}
 
@@ -153,10 +152,15 @@ namespace w32
 	void CNamedPipeWorkerPool::AddClientConnection(CHandle connection)
 	{
 		CIOContext* ioContext = NULL;
+		std::unique_lock<std::mutex> slotLock;
 		for (DWORD i = 0; i < MAX_INSTANCES; i++)
 		{
+			std::unique_lock candidate(m_IOContext[i].Mutex, std::try_to_lock);
+			if (!candidate.owns_lock())
+				continue;
 			if (!m_IOContext[i].IOHandle.IsValid()) {
 				ioContext = &m_IOContext[i];
+				slotLock = std::move(candidate);
 				break;
 			}
 		}
@@ -174,14 +178,14 @@ namespace w32
 		try
 		{
 			InitiateRead(connection, ioContext->InputBuffer, &ioContext->Overlapped);
+			ioContext->ReadStarted = true;
 		}
 		catch (exception&)
 		{
 			//an exception at this point means that the IO operation was never started and the
 			//connection is not operational. Remove the handle because from the worker's point
 			//of view the connection is being terminated and will be cleaned up.
-			DisconnectNamedPipe(ioContext->IOHandle);
-			ioContext->IOHandle = NULL;
+			CloseConnection(*ioContext);
 			throw;
 		}
 	}
@@ -261,12 +265,14 @@ namespace w32
 				}
 
 				bytesRead = 0;
-				ioBuffer.AddSize(bytesRemainingInMessage);
-				//perform a read for the remaining data. Do not use overlapped IO so no other threads
-				//get triggered. The data is already available so this doesn't cost extra time here.
-				if (!ReadFile(pipe, ioBuffer.WritePtr(), ioBuffer.SizeRemaining(), &bytesRead, NULL)) {
-					throw ExWin32Error("ReadFile failed for remaining bytes in pipe");
-				}
+				if (ioBuffer.Offset() > max_message_size ||
+					bytesRemainingInMessage > max_message_size - ioBuffer.Offset())
+					throw AppException("Pipe message exceeds 1 MiB limit");
+				const DWORD totalSize = ioBuffer.Offset() + bytesRemainingInMessage;
+				if (totalSize > ioBuffer.Size())
+					ioBuffer.AddSize(totalSize - ioBuffer.Size());
+				// Finish using a separate completion event and a cancellable wait.
+				bytesRead = Transfer(pipe, ioBuffer.WritePtr(), ioBuffer.SizeRemaining(), false);
 				ioBuffer.SetOffset(
 					ioBuffer.Offset() + bytesRead);
 			}
@@ -277,14 +283,50 @@ namespace w32
 	}
 
 	//Send a return message after the incoming message was processed.
-	//This is performed synchronously because the entire message is ready
-	//to be sent and the minute performance difference isn't worth the complexity
-	//of implementing the asynchronous write.
+	//The worker waits for an overlapped write with timeout and shutdown support.
 	void CNamedPipeWorkerPool::SendReturnMessage(HANDLE pipe, CIOBuffer& buffer)
 	{
-		if (!WriteFile(pipe, buffer.Ptr(), buffer.Offset(), NULL, NULL)) {
-			throw ExWin32Error("CNamedPipeWorker::SendReturnMessage WriteFile");
+		if (Transfer(pipe, buffer.Ptr(), buffer.Offset(), true) != buffer.Offset())
+			throw AppException("Incomplete pipe reply");
+	}
+
+	// Separate event: pool workers must not consume this operation's completion.
+	DWORD CNamedPipeWorkerPool::Transfer(HANDLE pipe, void* data, DWORD size, bool write)
+	{
+		CManualResetEvent event;
+		OVERLAPPED operation{};
+		operation.hEvent = event;
+		DWORD bytes = 0;
+		const BOOL done = write ? WriteFile(pipe, data, size, &bytes, &operation)
+			: ReadFile(pipe, data, size, &bytes, &operation);
+		if (!done) {
+			if (GetLastError() != ERROR_IO_PENDING)
+				throw ExWin32Error("Pipe transfer");
+			HANDLE waits[] = { m_ShutdownEvent, event };
+			if (WaitForMultipleObjects(2, waits, FALSE, 2000) != WAIT_OBJECT_0 + 1) {
+				CancelIoEx(pipe, &operation);
+				GetOverlappedResult(pipe, &operation, &bytes, TRUE);
+				throw AppException("Pipe transfer cancelled or timed out");
+			}
 		}
+		if (!GetOverlappedResult(pipe, &operation, &bytes, FALSE))
+			throw ExWin32Error("Pipe transfer completion");
+		return bytes;
+	}
+
+	void CNamedPipeWorkerPool::CloseConnection(CIOContext& context)
+	{
+		if (context.IOHandle.IsValid()) {
+			if (context.ReadStarted) {
+				CancelIoEx(context.IOHandle, &context.Overlapped);
+				DWORD ignored = 0;
+				GetOverlappedResult(context.IOHandle, &context.Overlapped, &ignored, TRUE);
+				context.ReadStarted = false;
+			}
+			DisconnectNamedPipe(context.IOHandle);
+			context.IOHandle = NULL;
+		}
+		context.IOEvent.ResetEvent();
 	}
 
 	//Perform work. This function will be executed concurrently on as many threads
@@ -306,10 +348,13 @@ namespace w32
 			//is not a valid index, something is catastrophically wrong and we exit.
 			if (eventIndex >= MAX_INSTANCES) {
 				DWORD error = GetLastError();
-				return -1;
+				LOG_SAVE("Pipe worker wait failed, error {}", error);
+				worker->Shutdown();
+				return error;
 			}
 
 			CIOContext* ioContext = &worker->m_IOContext[eventIndex];
+			std::lock_guard slotLock(ioContext->Mutex);
 
 			try
 			{
@@ -318,6 +363,7 @@ namespace w32
 				if (!ioContext->IOHandle.IsValid())
 					continue;
 
+				ioContext->ReadStarted = false; // event has completed the read
 				worker->ProcessReadCompletion(
 					ioContext->IOHandle,
 					ioContext->InputBuffer,
@@ -353,9 +399,10 @@ namespace w32
 					ioContext->IOHandle,
 					ioContext->InputBuffer,
 					&ioContext->Overlapped);
+				ioContext->ReadStarted = true;
 
 			}
-			catch (exception&)
+			catch (exception& ex)
 			{
 				//Something went catastrophically wrong with the communication.
 				//It is essentially unknowable what exactly. If it is related to the handle
@@ -364,19 +411,17 @@ namespace w32
 				//If error handling 'can' be done, it will have to be implemented in the message
 				//handler which can format a reply. If things progress to this place
 				//we terminate the connection cleanly and free up the connection slot.
-				//No locking is required because this is the only place where the handle
-				//array is set back to NULL when the threads are running.
+				//The context mutex also excludes slot reuse by the accept thread.
 
-				DisconnectNamedPipe(ioContext->IOHandle);
+				LOG_SAVE("Pipe connection closed: {}", ex.what());
 
 				//at this point it doesn't even matter if IO is in progress or not.
 				//We just have to make sure it is cancelled if it is, to make sure that an
 				//outstanding IO request would not touch the buffer pointer at some future
 				//time when the buffer has been invalidated.
-				CancelIo(ioContext->IOHandle);
 
 				//will cause the handle to be closed
-				ioContext->IOHandle = NULL;
+				worker->CloseConnection(*ioContext);
 			}
 		}
 

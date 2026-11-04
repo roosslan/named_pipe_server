@@ -84,15 +84,12 @@ void pipe_message_handler(void* /*context*/, w32::CHandle& /*handle*/, CIOBuffer
     if (message == "START_IMMEDIATELY") {
         bg_service.request_start_immediately();
     }
-    /* Дублируем из пайпа в сокет Qt для отладки */
-    else {
-        bg_service.socket_send(message);
-    }
-
-    if (message.starts_with("End of export"))  /* Сообщение от плагина, что экспорт завершен */
-    {
-        LOG_SAVE("Kиляем Rевит");
+    if (message.starts_with("End of export"))
         terminate_revit_process();
+
+    /* Дублируем из пайпа в сокет Qt для отладки */
+    if (message != "START_IMMEDIATELY") {
+        bg_service.socket_send(message);
     }
 }
 
@@ -131,7 +128,7 @@ bool is_network_file_exists(const std::string& remote_sav_dir) {
 
     std::error_code ec;
     /* Если сеть отвалилась в момент проверки, вернётся false с кодом ошибки в ec */
-    return std::filesystem::exists(remote_sav_dir + host_name + ".sav", ec);
+    return std::filesystem::exists(std::filesystem::path(remote_sav_dir) / (host_name + ".sav"), ec);
 }
 
 void remote_sav_checker::poll() {
@@ -148,7 +145,15 @@ void remote_sav_checker::poll() {
     }
 
     const std::string remote_sav_dir = read_inf_string(L"ControlFlags", L"RemoteSavDir", CA2W(default_remote_sav_dir));
-    check_ = std::async(std::launch::async, is_network_file_exists, remote_sav_dir);
+    // packaged_task future does not wait in its destructor. The detached task owns
+    // its path and result; it never accesses the checker, service, or logger.
+    // At most one probe per checker may be outstanding.
+    std::packaged_task<bool()> task([remote_sav_dir] {
+        return is_network_file_exists(remote_sav_dir);
+    });
+    auto result = task.get_future();
+    std::thread(std::move(task)).detach();
+    check_ = std::move(result);
 }
 
 void ini_timer_check(const bool start_immediately) {
@@ -174,9 +179,6 @@ void ini_timer_check(const bool start_immediately) {
     if (!scheduled && !start_immediately)
         return;
 
-    if (scheduled)
-        last_scheduled_slot = slot;
-
     if (!bg_service.m_connected_to_qml)
         bg_service.socket_connect();
 
@@ -184,6 +186,8 @@ void ini_timer_check(const bool start_immediately) {
     /*	Это должен писать плагин после завершения работы.  ret = WritePrivateProfileStringW(L"ControlFlags", L"Enabled", L"false", infConfigPath);		*/
 
     if (const DWORD running_pid = running_revit_pid(); running_pid != 0) {
+        if (scheduled)
+            last_scheduled_slot = slot;
         LOG_SAVE("Revit launched earlier is still running (pid {}) - not starting another one", running_pid);
         return;
     }
@@ -206,6 +210,8 @@ void ini_timer_check(const bool start_immediately) {
     }
 
     const std::string started_record = "Started Revit " + s_revit_version + ", pid " + std::to_string(started_pid);
+    if (scheduled)
+        last_scheduled_slot = slot;
     LOG_SAVE("{}", started_record);
     bg_service.socket_send(started_record);
 }

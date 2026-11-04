@@ -96,6 +96,8 @@ namespace w32
 
 		//reply to the caller
 		void SendReturnMessage(HANDLE pipe, CIOBuffer& buffer);
+		DWORD Transfer(HANDLE pipe, void* data, DWORD size, bool write);
+		void CloseConnection(CIOContext& context);
 
 	public:
 		CNamedPipeWorkerPool(

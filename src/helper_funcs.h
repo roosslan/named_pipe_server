@@ -13,7 +13,8 @@
 #include "cnamedps\CIOBuffer.h"
 
 struct active_object {
-    template < typename FN > active_object(FN fn) : thread([this, fn] { while (alive) fn(); }) {}
+    // The callback returns false when its external stop event is signalled.
+    template < typename FN > active_object(FN fn) : thread([this, fn] { while (alive && fn()) {} }) {}
 
     ~active_object() { alive = false; thread.join(); }
 
@@ -26,7 +27,8 @@ struct active_object {
 };
 
 /* Неблокирующая проверка .sav-файла на сетевом диске (задел под удалённый экспорт).
- * poll() вызывается периодически из одного потока; результат пишется в лог при изменении */
+ * poll() вызывается периодически из одного потока; результат пишется в лог при изменении.
+ * Незавершённая проверка владеет своими данными и не удерживает объект при выходе. */
 class remote_sav_checker {
     std::future<bool> check_;
     int last_state_ = -1;   /* -1 - ещё не проверялось */

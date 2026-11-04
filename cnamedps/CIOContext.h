@@ -21,6 +21,7 @@
 #include "CIOBuffer.h"
 #include "CHandle.h"
 #include "CEvent.h"
+#include <mutex>
 
 namespace w32
 {
@@ -30,6 +31,8 @@ namespace w32
 	{
 	public:
 		CIOContext();
+		std::mutex Mutex; // protects handle, buffers and OVERLAPPED as one unit
+		bool ReadStarted = false;
 		CHandle IOHandle;			//The handle for the object on which the IO is done
 		CAutoResetEvent IOEvent;	//completion event for the object
 		OVERLAPPED Overlapped;		//overlapped completion structure
