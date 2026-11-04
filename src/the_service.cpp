@@ -6,6 +6,7 @@
 #include "sensitive_data.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "socket_io.h"
 
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -34,6 +35,7 @@ namespace
 	constexpr wchar_t sz_pipe_name[] = L"\\\\.\\Pipe\\bghelperpipe";
 	/* Период проверки расписания в INI-файле */
 	constexpr DWORD timer_period_ms = 20 * 1000;
+	constexpr auto socket_timeout = std::chrono::seconds(2);
 
 	BOOL WINAPI on_console_ctrl(DWORD /*ctrl_type*/) {
 		bg_service.request_stop();
@@ -44,7 +46,7 @@ namespace
 CBgHelperSrv::CBgHelperSrv() = default;
 
 bool CBgHelperSrv::socket_connect() {
-	if (!wsa_started_)
+	if (!wsa_started_ || WaitForSingleObject(stop_event_, 0) == WAIT_OBJECT_0)
 		return false;
 
 	/* Проверка процесса медленная, делаем её до захвата мьютекса */
@@ -57,18 +59,20 @@ bool CBgHelperSrv::socket_connect() {
 	if (m_connected_to_qml)
 		return true;
 
-	/* connect к закрытому порту localhost на Windows длится до ~2 с, поэтому
-	 * соединяемся без мьютекса и публикуем сокет только после успеха */
+	/* Соединяемся без мьютекса, с таймаутом и проверкой stop_event_.
+	 * Публикуем неблокирующий сокет только после успеха. */
 	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (s == INVALID_SOCKET)
 		return false;
-
-	if (connect(s, reinterpret_cast<const SOCKADDR*>(&addr_), sizeof(addr_)) == SOCKET_ERROR) {
+	if (socket_io::connect(s, reinterpret_cast<const sockaddr*>(&addr_), sizeof(addr_), stop_event_, socket_timeout) != 0) {
 		closesocket(s);
 		return false;
 	}
-
 	std::lock_guard lock(socket_mu_);
+	if (WaitForSingleObject(stop_event_, 0) == WAIT_OBJECT_0) {
+		closesocket(s);
+		return false;
+	}
 	if (socket_ != INVALID_SOCKET) {
 		/* Другой поток успел подключиться раньше */
 		closesocket(s);
@@ -87,14 +91,14 @@ void CBgHelperSrv::socket_send(std::string_view data) {
 	if (socket_ == INVALID_SOCKET)
 		return;
 
-	while (!data.empty()) {
-		const int sent = send(socket_, data.data(), static_cast<int>(data.size()), 0);
-		if (sent == SOCKET_ERROR) {
-			LOG_SAVE("send() failed, WSA error {}, closing socket", WSAGetLastError());
-			close_socket_locked();
-			return;
-		}
-		data.remove_prefix(static_cast<size_t>(sent));
+	/* Каждая запись лога завершается переводом строки для приёмника TCP. */
+	std::string record(data);
+	if (record.empty() || record.back() != '\n')
+		record += '\n';
+	const int error = socket_io::send_all(socket_, record, stop_event_, socket_timeout);
+	if (error != 0) {
+		LOG_SAVE("TCP send failed, WSA error {}, closing socket", error);
+		close_socket_locked();
 	}
 }
 
@@ -170,7 +174,10 @@ BOOL CBgHelperSrv::InitInstance() {
 
 	{
 		/* Фоновое (пере)подключение к ifc_exporter, останавливается при выходе из блока */
-		active_object connector([this] { socket_connect(); std::this_thread::sleep_for(200ms); });
+		active_object connector([this] {
+			socket_connect();
+			return WaitForSingleObject(stop_event_, 200) != WAIT_OBJECT_0;
+		});
 
 		/* Запущено как приложение */
 		if (__argc == 1)

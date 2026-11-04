@@ -4,5 +4,6 @@ sensitive_data.h
 # Артефакты Visual Studio
 .vs/
 x64/
+build-tests/
 *.user
 *.aps

@@ -149,10 +149,11 @@ namespace w32
 
 			}
 
+			bool connectPending = false;
 			if(!ConnectNamedPipe(pipeHandle, &server->m_ConnectOverlap)) {
 				DWORD error = GetLastError();
 				if (error == ERROR_IO_PENDING)
-					; //normal. The wait operation has started.
+					connectPending = true;
 				else if (error == ERROR_PIPE_CONNECTED) {
 					//a client has already connected between creating the pipe and
 					//waiting for a client to connect. This is rare but can happen.
@@ -178,6 +179,16 @@ namespace w32
 			//immediately fall through, detect the shutdown, and perform the shutdown sequence.
 
 			DWORD waitResult = WaitForMultipleObjects(2, waitObjects, FALSE, INFINITE);
+			if (connectPending) {
+				DWORD ignored = 0;
+				if (waitResult != ConnectEventIndex)
+					CancelIoEx(pipeHandle, &server->m_ConnectOverlap);
+				if (!GetOverlappedResult(pipeHandle, &server->m_ConnectOverlap, &ignored, TRUE)
+					&& waitResult == ConnectEventIndex) {
+					LOG_SAVE("Pipe connect failed, error {}", GetLastError());
+					continue;
+				}
+			}
 			if (waitResult == ConnectEventIndex) {
 				//A client connected. Offload the request to a worker thread and get ready
 				//to wait for another client
@@ -185,8 +196,9 @@ namespace w32
 				{
 					server->m_WorkerPool.AddClientConnection(pipeHandle);
 				}
-				catch (exception&)
+				catch (exception& ex)
 				{
+					LOG_SAVE("Cannot add pipe client: {}", ex.what());
 					//the pipehandle is not added. The only remaining handle will
 					//be cleaned up automatically when the local variable goes out of scope
 				}

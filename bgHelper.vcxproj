@@ -115,6 +115,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\logger.h" />
+    <ClInclude Include="src\socket_io.h" />
     <ClInclude Include="cnamedps\CBuffer.h" />
     <ClInclude Include="cnamedps\CEvent.h" />
     <ClInclude Include="cnamedps\CHandle.h" />
