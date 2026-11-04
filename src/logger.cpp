@@ -1,5 +1,4 @@
 ﻿#include <Windows.h> /* Самый первый, потому что C1189: MFC requires use of Winsock2.h */
-#include <Shlwapi.h>
 
 #include <memory>
 #include <vector>
@@ -51,13 +50,6 @@ void rLogger::init_logging() {
     if (!file_error.empty())
         LOG_SAVE("Failed to open log file: {}", file_error);
     LOG_SAVE("logger initialized. bgHelper version is {}", bg_helper_version);
-}
-
-std::string rLogger::get_log_folder_path() {
-    char current_path[MAX_PATH];
-    GetModuleFileName(nullptr, current_path, MAX_PATH);
-    PathRemoveFileSpec(current_path);		            /* Removes filename from the path */
-    return std::string(current_path);
 }
 
 std::string rLogger::get_self_version() {

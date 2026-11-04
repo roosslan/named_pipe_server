@@ -183,10 +183,9 @@ namespace w32
 				//to wait for another client
 				try
 				{
-					std::cout << "CNamedPipeServer::CreateNamedPipeHandle() CONNECTED!!";
 					server->m_WorkerPool.AddClientConnection(pipeHandle);
 				}
-				catch (exception& ex)
+				catch (exception&)
 				{
 					//the pipehandle is not added. The only remaining handle will
 					//be cleaned up automatically when the local variable goes out of scope

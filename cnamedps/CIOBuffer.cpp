@@ -64,7 +64,8 @@ namespace w32
 
 	DWORD CIOBuffer::Size()
 	{
-		return CBuffer<BYTE>::Size();
+		//размер буфера канала задаётся в DWORD, поэтому сужение безопасно
+		return static_cast<DWORD>(CBuffer<BYTE>::Size());
 	}
 
 }
