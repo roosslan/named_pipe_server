@@ -1,4 +1,4 @@
-/* last changed 16.10.26 */
+﻿/* last changed 16.10.26 */
 #include "stdafx.h"
 
 #include "the_service.h"
@@ -91,7 +91,11 @@ void CBgHelperSrv::socket_send(std::string_view data) {
 	if (socket_ == INVALID_SOCKET)
 		return;
 
-	const int error = socket_io::send_all(socket_, data, stop_event_, socket_timeout);
+	/* Каждая запись лога завершается переводом строки для приёмника TCP. */
+	std::string record(data);
+	if (record.empty() || record.back() != '\n')
+		record += '\n';
+	const int error = socket_io::send_all(socket_, record, stop_event_, socket_timeout);
 	if (error != 0) {
 		LOG_SAVE("TCP send failed, WSA error {}, closing socket", error);
 		close_socket_locked();
